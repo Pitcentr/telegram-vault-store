@@ -3,9 +3,8 @@ version: "3.7"
 
 services:
   app:
-    build:
-      context: ./docker
-      dockerfile: Dockerfile
+    image: vault-telegram-vault:local
+    container_name: vault-telegram-vault_app_1
     restart: unless-stopped
     networks:
       - default
