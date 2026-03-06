@@ -5,6 +5,8 @@ services:
   app:
     image: ghcr.io/pitcentr/telegram-vault:latest
     restart: unless-stopped
+    networks:
+      - default
     environment:
       TG_TOKEN: ${APP_TG_TOKEN}
       PB_URL: http://pocketbase_app_1:8090
@@ -17,3 +19,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+networks:
+  default:
+    name: umbrel_main_network
+    external: true

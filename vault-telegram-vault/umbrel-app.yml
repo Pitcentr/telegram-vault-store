@@ -8,10 +8,10 @@ version: "1.0.0"
 description: >
   Telegram password manager with AES-256 encryption and PocketBase storage.
 developer: Self Hosted
-website: https://github.com
+website: https://github.com/pitcentr/telegram-vault
 submitter: Self
-repo: https://github.com
-support: https://github.com
+repo: https://github.com/pitcentr/telegram-vault
+support: https://github.com/pitcentr/telegram-vault/issues
 gallery:
   - metadata/screenshots/screenshot1.png
 dependencies:
