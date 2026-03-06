@@ -1,0 +1,86 @@
+<svg width="800" height="1200" viewBox="0 0 800 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <rect width="800" height="1200" fill="url(#bg)"/>
+  
+  <!-- Phone frame -->
+  <rect x="212" y="166" width="375" height="667" rx="40" fill="#0f0f0f"/>
+  
+  <!-- Screen -->
+  <rect x="227" y="181" width="345" height="637" rx="30" fill="#1a1a1a"/>
+  
+  <!-- Header -->
+  <rect x="227" y="181" width="345" height="70" rx="30" fill="#2a2a2a"/>
+  <rect x="227" y="221" width="345" height="30" fill="#2a2a2a"/>
+  
+  <!-- Bot avatar -->
+  <circle cx="252" cy="211" r="20" fill="#00d26a"/>
+  <text x="252" y="219" font-size="20" text-anchor="middle" fill="#1a1a1a">🔐</text>
+  
+  <!-- Bot name -->
+  <text x="282" y="209" font-size="16" font-weight="600" fill="#fff" font-family="Arial, sans-serif">Telegram Vault</text>
+  <text x="282" y="227" font-size="13" fill="#8e8e93" font-family="Arial, sans-serif">Password Manager Bot</text>
+  
+  <!-- Chat messages -->
+  <!-- Message 1: User saves password -->
+  <rect x="372" y="280" width="180" height="60" rx="18" fill="#00d26a"/>
+  <text x="462" y="305" font-size="13" text-anchor="middle" fill="#000" font-family="monospace">github.com myuser</text>
+  <text x="462" y="323" font-size="13" text-anchor="middle" fill="#000" font-family="monospace">SecurePass123!</text>
+  <text x="542" y="335" font-size="10" fill="#000" opacity="0.6" font-family="Arial">14:23</text>
+  
+  <!-- Message 2: Bot confirms -->
+  <rect x="247" y="355" width="100" height="40" rx="18" fill="#2a2a2a"/>
+  <text x="297" y="380" font-size="14" text-anchor="middle" fill="#fff" font-family="Arial">✅ Saved</text>
+  <text x="257" y="390" font-size="10" fill="#8e8e93" font-family="Arial">14:23</text>
+  
+  <!-- Message 3: User searches -->
+  <rect x="472" y="410" width="80" height="40" rx="18" fill="#00d26a"/>
+  <text x="512" y="435" font-size="14" text-anchor="middle" fill="#000" font-family="Arial">github</text>
+  <text x="542" y="445" font-size="10" fill="#000" opacity="0.6" font-family="Arial">14:25</text>
+  
+  <!-- Message 4: Password card -->
+  <rect x="247" y="465" width="280" height="200" rx="12" fill="#2a2a2a"/>
+  
+  <!-- URL field -->
+  <text x="262" y="490" font-size="11" fill="#8e8e93" font-family="Arial">URL</text>
+  <text x="262" y="510" font-size="14" fill="#fff" font-family="Courier New">github.com</text>
+  
+  <!-- Login field -->
+  <text x="262" y="540" font-size="11" fill="#8e8e93" font-family="Arial">Login</text>
+  <text x="262" y="560" font-size="14" fill="#fff" font-family="Courier New">myuser</text>
+  
+  <!-- Password field -->
+  <text x="262" y="590" font-size="11" fill="#8e8e93" font-family="Arial">Password</text>
+  <text x="262" y="610" font-size="14" fill="#fff" font-family="Courier New">SecurePass123!</text>
+  
+  <!-- Delete button -->
+  <rect x="262" y="625" width="250" height="30" rx="8" fill="#ff3b30"/>
+  <text x="387" y="645" font-size="13" font-weight="600" text-anchor="middle" fill="#fff" font-family="Arial">🗑️ Delete</text>
+  
+  <!-- Timestamp -->
+  <text x="257" y="675" font-size="10" fill="#8e8e93" font-family="Arial">14:25 • Auto-delete in 2 min</text>
+  
+  <!-- Input area -->
+  <rect x="227" y="788" width="345" height="30" fill="#2a2a2a"/>
+  <rect x="242" y="793" width="280" height="20" rx="10" fill="#1a1a1a"/>
+  <text x="252" y="807" font-size="12" fill="#666" font-family="Arial">Search or save password...</text>
+  
+  <!-- Send button -->
+  <circle cx="545" cy="803" r="12" fill="#00d26a"/>
+  <path d="M 540 803 L 550 798 L 550 808 Z" fill="#fff"/>
+  
+  <!-- Lock icon badge -->
+  <circle cx="545" cy="206" r="15" fill="rgba(0, 210, 106, 0.2)"/>
+  <text x="545" y="213" font-size="14" text-anchor="middle" fill="#00d26a">🔒</text>
+  
+  <!-- Bottom text -->
+  <text x="400" y="900" font-size="24" font-weight="600" text-anchor="middle" fill="#fff" font-family="Arial">Telegram Vault</text>
+  <text x="400" y="930" font-size="16" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-family="Arial">Secure Password Manager</text>
+  <text x="400" y="955" font-size="14" text-anchor="middle" fill="rgba(255,255,255,0.6)" font-family="Arial">AES-256 Encryption • Auto-Delete • Fuzzy Search</text>
+</svg>

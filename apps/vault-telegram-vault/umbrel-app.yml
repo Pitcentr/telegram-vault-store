@@ -1,0 +1,20 @@
+
+id: vault-telegram-vault
+name: Telegram Vault
+tagline: Encrypted Telegram password manager
+icon: metadata/icon.svg
+category: security
+version: "1.0.0"
+description: >
+  Telegram password manager with AES-256 encryption and PocketBase storage.
+developer: Self Hosted
+website: https://github.com
+submitter: Self
+repo: https://github.com
+support: https://github.com
+gallery:
+  - metadata/screenshots/screenshot1.png
+dependencies:
+  - pocketbase
+path: ""
+docker-compose: docker-compose.yml

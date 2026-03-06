@@ -1,0 +1,187 @@
+
+import {Bot,InlineKeyboard} from "grammy"
+import PocketBase from "pocketbase"
+import dotenv from "dotenv"
+import Fuse from "fuse.js"
+import crypto from "crypto"
+
+dotenv.config()
+
+const bot=new Bot(process.env.TG_TOKEN)
+
+const pb=new PocketBase(process.env.PB_URL)
+
+await pb.admins.authWithPassword(
+ process.env.PB_ADMIN,
+ process.env.PB_PASSWORD
+)
+
+// Initialize collections
+try {
+ await pb.collections.getOne("secrets")
+} catch {
+ await pb.collections.create({
+  name: "secrets",
+  type: "base",
+  schema: [
+   { name: "url", type: "text", required: true },
+   { name: "login", type: "text", required: true },
+   { name: "password_enc", type: "text", required: true },
+   { name: "iv", type: "text", required: true },
+   { name: "created_by", type: "text", required: true }
+  ]
+ })
+}
+
+try {
+ await pb.collections.getOne("audit_logs")
+} catch {
+ await pb.collections.create({
+  name: "audit_logs",
+  type: "base",
+  schema: [
+   { name: "user_id", type: "text", required: true },
+   { name: "action", type: "text", required: true },
+   { name: "query", type: "text", required: true },
+   { name: "timestamp", type: "text", required: true }
+  ]
+ })
+}
+
+const allowed=process.env.ALLOWED_USERS.split(",")
+
+function key(master){
+ return crypto.createHash("sha256").update(master).digest()
+}
+
+function encrypt(text){
+
+ const iv=crypto.randomBytes(16)
+ const cipher=crypto.createCipheriv("aes-256-gcm",key(process.env.MASTER_PASSWORD),iv)
+
+ let enc=cipher.update(text,"utf8","hex")
+ enc+=cipher.final("hex")
+
+ const tag=cipher.getAuthTag().toString("hex")
+
+ return {enc,iv:iv.toString("hex"),tag}
+}
+
+function decrypt(enc,iv,tag){
+
+ const decipher=crypto.createDecipheriv(
+  "aes-256-gcm",
+  key(process.env.MASTER_PASSWORD),
+  Buffer.from(iv,"hex")
+ )
+
+ decipher.setAuthTag(Buffer.from(tag,"hex"))
+
+ let dec=decipher.update(enc,"hex","utf8")
+ dec+=decipher.final("utf8")
+
+ return dec
+}
+
+bot.on("message:text",async ctx=>{
+
+ const user=ctx.from.id
+
+ if(!allowed.includes(String(user))) return
+
+ const txt=ctx.message.text.trim()
+
+ const parts=txt.split(" ")
+
+ if(parts.length>=3){
+
+  const e=encrypt(parts[2])
+
+  await pb.collection("secrets").create({
+   url:parts[0],
+   login:parts[1],
+   password_enc:e.enc,
+   iv:e.iv+":"+e.tag,
+   created_by:String(user)
+  })
+
+  await pb.collection("audit_logs").create({
+   user_id:String(user),
+   action:"save",
+   query:parts[0],
+   timestamp:new Date().toISOString()
+  })
+
+  const m=await ctx.reply("saved")
+
+  setTimeout(()=>{
+   ctx.api.deleteMessage(ctx.chat.id,ctx.message.message_id).catch(()=>{})
+   ctx.api.deleteMessage(ctx.chat.id,m.message_id).catch(()=>{})
+  },120000)
+
+  return
+ }
+
+ const list=await pb.collection("secrets").getFullList()
+
+ const fuse=new Fuse(list,{keys:["url"]})
+
+ const found=fuse.search(txt)
+
+ if(!found.length){
+  await ctx.reply("not found")
+  return
+ }
+
+ const r=found[0].item
+
+ const [iv,tag]=r.iv.split(":")
+
+ const pass=decrypt(r.password_enc,iv,tag)
+
+ await pb.collection("audit_logs").create({
+  user_id:String(user),
+  action:"search",
+  query:txt,
+  timestamp:new Date().toISOString()
+ })
+
+ const kb=new InlineKeyboard().text("Delete","del_"+r.id)
+
+ const reply=await ctx.reply(`URL: ${r.url}
+Login: ${r.login}
+Password: ${pass}`,{reply_markup:kb})
+
+ setTimeout(()=>{
+  ctx.api.deleteMessage(ctx.chat.id,ctx.message.message_id).catch(()=>{})
+  ctx.api.deleteMessage(ctx.chat.id,reply.message_id).catch(()=>{})
+ },120000)
+
+})
+
+bot.callbackQuery(/del_(.+)/,async ctx=>{
+
+ const user=ctx.from.id
+
+ if(!allowed.includes(String(user))){
+  await ctx.answerCallbackQuery("Access denied")
+  return
+ }
+
+ const secretId=ctx.match[1]
+
+ await pb.collection("secrets").delete(secretId)
+
+ await pb.collection("audit_logs").create({
+  user_id:String(user),
+  action:"delete",
+  query:secretId,
+  timestamp:new Date().toISOString()
+ })
+
+ await ctx.answerCallbackQuery("Deleted")
+ await ctx.deleteMessage().catch(()=>{})
+
+})
+
+bot.start()

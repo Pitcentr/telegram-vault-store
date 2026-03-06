@@ -1,0 +1,11 @@
+
+{
+ "name": "telegram-vault",
+ "type": "module",
+ "dependencies": {
+  "grammy": "^1.21.1",
+  "pocketbase": "^0.21.5",
+  "dotenv": "^16.4.5",
+  "fuse.js": "^7.0.0"
+ }
+}

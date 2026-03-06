@@ -1,0 +1,37 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Dark background -->
+  <rect width="256" height="256" rx="32" fill="#1a1a1a"/>
+  
+  <!-- Vault door outer circle -->
+  <circle cx="128" cy="128" r="85" fill="#2a2a2a" stroke="#00d26a" stroke-width="4"/>
+  
+  <!-- Vault door inner details -->
+  <circle cx="128" cy="128" r="70" fill="#1a1a1a" stroke="#00d26a" stroke-width="3"/>
+  
+  <!-- Lock mechanism - center circle -->
+  <circle cx="128" cy="128" r="25" fill="#00d26a"/>
+  <circle cx="128" cy="128" r="20" fill="#1a1a1a"/>
+  <circle cx="128" cy="128" r="8" fill="#00d26a"/>
+  
+  <!-- Lock spokes -->
+  <line x1="128" y1="103" x2="128" y2="88" stroke="#00d26a" stroke-width="3" stroke-linecap="round"/>
+  <line x1="128" y1="153" x2="128" y2="168" stroke="#00d26a" stroke-width="3" stroke-linecap="round"/>
+  <line x1="103" y1="128" x2="88" y2="128" stroke="#00d26a" stroke-width="3" stroke-linecap="round"/>
+  <line x1="153" y1="128" x2="168" y2="128" stroke="#00d26a" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- Diagonal spokes -->
+  <line x1="110" y1="110" x2="99" y2="99" stroke="#00d26a" stroke-width="3" stroke-linecap="round"/>
+  <line x1="146" y1="146" x2="157" y2="157" stroke="#00d26a" stroke-width="3" stroke-linecap="round"/>
+  <line x1="146" y1="110" x2="157" y2="99" stroke="#00d26a" stroke-width="3" stroke-linecap="round"/>
+  <line x1="110" y1="146" x2="99" y2="157" stroke="#00d26a" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- Vault bolts -->
+  <circle cx="75" cy="128" r="6" fill="#00d26a"/>
+  <circle cx="181" cy="128" r="6" fill="#00d26a"/>
+  <circle cx="128" cy="75" r="6" fill="#00d26a"/>
+  <circle cx="128" cy="181" r="6" fill="#00d26a"/>
+  
+  <!-- Telegram icon hint - small paper plane in corner -->
+  <path d="M 200 40 L 210 35 L 215 45 L 205 42 Z" fill="#00d26a" opacity="0.7"/>
+  <line x1="210" y1="35" x2="205" y2="42" stroke="#00d26a" stroke-width="1.5" opacity="0.7"/>
+</svg>

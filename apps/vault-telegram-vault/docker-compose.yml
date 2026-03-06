@@ -1,0 +1,19 @@
+
+version: "3.7"
+
+services:
+  app:
+    image: ghcr.io/pitcentr/telegram-vault:latest
+    restart: unless-stopped
+    environment:
+      TG_TOKEN: ${APP_TG_TOKEN}
+      PB_URL: http://pocketbase_app_1:8090
+      PB_ADMIN: ${APP_PB_ADMIN}
+      PB_PASSWORD: ${APP_PB_PASSWORD}
+      MASTER_PASSWORD: ${APP_MASTER_PASSWORD}
+      ALLOWED_USERS: ${APP_ALLOWED_USERS}
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
