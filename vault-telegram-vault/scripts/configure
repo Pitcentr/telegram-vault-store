@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# Configuration script for Telegram Vault
+# This script helps set up environment variables
+
+echo "=== Telegram Vault Configuration ==="
+echo ""
+
+# Check if .env exists
+if [ -f ".env" ]; then
+    echo "Found existing .env file. Backing up..."
+    cp .env .env.backup
+fi
+
+# Create .env from template
+cp .env.example .env
+
+echo "Please provide the following information:"
+echo ""
+
+read -p "Telegram Bot Token (from @BotFather): " TG_TOKEN
+read -p "PocketBase Admin Email [admin@vault.local]: " PB_ADMIN
+PB_ADMIN=${PB_ADMIN:-admin@vault.local}
+read -sp "PocketBase Admin Password: " PB_PASSWORD
+echo ""
+read -sp "Master Password (for encryption): " MASTER_PASSWORD
+echo ""
+read -p "Allowed Telegram User IDs (comma-separated): " ALLOWED_USERS
+
+# Write to .env
+cat > .env << EOF
+APP_TG_TOKEN=${TG_TOKEN}
+APP_PB_ADMIN=${PB_ADMIN}
+APP_PB_PASSWORD=${PB_PASSWORD}
+APP_MASTER_PASSWORD=${MASTER_PASSWORD}
+APP_ALLOWED_USERS=${ALLOWED_USERS}
+EOF
+
+echo ""
+echo "Configuration saved to .env"
+echo "Restart the application to apply changes:"
+echo "  docker-compose down && docker-compose up -d"
