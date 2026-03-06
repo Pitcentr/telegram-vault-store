@@ -3,7 +3,9 @@ version: "3.7"
 
 services:
   app:
-    image: ghcr.io/pitcentr/telegram-vault:latest
+    build:
+      context: ./docker
+      dockerfile: Dockerfile
     restart: unless-stopped
     networks:
       - default
