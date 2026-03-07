@@ -7,19 +7,42 @@ import crypto from "crypto"
 
 dotenv.config()
 
+// Validate environment variables
+const requiredEnvVars = ['TG_TOKEN', 'PB_URL', 'PB_ADMIN', 'PB_PASSWORD', 'MASTER_PASSWORD', 'ALLOWED_USERS']
+const missingVars = requiredEnvVars.filter(v => !process.env[v])
+
+if (missingVars.length > 0) {
+  console.error('Missing required environment variables:', missingVars.join(', '))
+  console.error('Please set all required variables in .env file')
+  process.exit(1)
+}
+
+console.log('Starting Telegram Vault bot...')
+console.log('PocketBase URL:', process.env.PB_URL)
+console.log('Allowed users:', process.env.ALLOWED_USERS)
+
 const bot=new Bot(process.env.TG_TOKEN)
 
 const pb=new PocketBase(process.env.PB_URL)
 
-await pb.admins.authWithPassword(
- process.env.PB_ADMIN,
- process.env.PB_PASSWORD
-)
+try {
+  await pb.admins.authWithPassword(
+    process.env.PB_ADMIN,
+    process.env.PB_PASSWORD
+  )
+  console.log('Successfully authenticated with PocketBase')
+} catch (error) {
+  console.error('Failed to authenticate with PocketBase:', error.message)
+  console.error('Make sure PocketBase is running and credentials are correct')
+  process.exit(1)
+}
 
 // Initialize collections
 try {
  await pb.collections.getOne("secrets")
+ console.log('Collection "secrets" already exists')
 } catch {
+ console.log('Creating collection "secrets"...')
  await pb.collections.create({
   name: "secrets",
   type: "base",
@@ -31,11 +54,14 @@ try {
    { name: "created_by", type: "text", required: true }
   ]
  })
+ console.log('Collection "secrets" created')
 }
 
 try {
  await pb.collections.getOne("audit_logs")
+ console.log('Collection "audit_logs" already exists')
 } catch {
+ console.log('Creating collection "audit_logs"...')
  await pb.collections.create({
   name: "audit_logs",
   type: "base",
@@ -46,6 +72,7 @@ try {
    { name: "timestamp", type: "text", required: true }
   ]
  })
+ console.log('Collection "audit_logs" created')
 }
 
 const allowed=process.env.ALLOWED_USERS.split(",")
@@ -185,3 +212,30 @@ bot.callbackQuery(/del_(.+)/,async ctx=>{
 })
 
 bot.start()
+
+console.log('Bot started successfully!')
+console.log('Waiting for messages...')
+
+// Handle graceful shutdown
+process.on('SIGINT', () => {
+  console.log('Received SIGINT, stopping bot...')
+  bot.stop()
+  process.exit(0)
+})
+
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM, stopping bot...')
+  bot.stop()
+  process.exit(0)
+})
+
+// Handle uncaught errors
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught exception:', error)
+  process.exit(1)
+})
+
+process.on('unhandledRejection', (error) => {
+  console.error('Unhandled rejection:', error)
+  process.exit(1)
+})

@@ -6,24 +6,12 @@ services:
     build:
       context: ./docker
       dockerfile: Dockerfile
-    container_name: vault-telegram-vault_app_1
     restart: unless-stopped
-    networks:
-      - default
+    stop_grace_period: 1m
     environment:
       TG_TOKEN: ${APP_TG_TOKEN}
-      PB_URL: http://pocketbase_app_1:8090
+      PB_URL: http://pocketbase_server:8090
       PB_ADMIN: ${APP_PB_ADMIN}
       PB_PASSWORD: ${APP_PB_PASSWORD}
       MASTER_PASSWORD: ${APP_MASTER_PASSWORD}
       ALLOWED_USERS: ${APP_ALLOWED_USERS}
-    healthcheck:
-      test: ["CMD", "node", "-e", "process.exit(0)"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-networks:
-  default:
-    name: umbrel_main_network
-    external: true
