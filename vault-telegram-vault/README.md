@@ -1,27 +1,60 @@
 # Telegram Vault
 
-Secure password manager using Telegram as interface with AES-256 encryption.
+Encrypted password manager using Telegram bot with AES-256 encryption and PocketBase storage.
 
-## Setup Instructions
+## Quick Setup
 
-After installation, you need to configure environment variables:
+### 1. Get Bot Token
+1. Open Telegram, search @BotFather
+2. Send `/newbot` and follow instructions
+3. Copy your bot token
 
-1. Get Telegram Bot Token from @BotFather
-2. Get your Telegram User ID from @userinfobot
-3. Set a strong master password for encryption
-4. Configure PocketBase credentials
+### 2. Get Your Telegram ID
+1. Search @userinfobot in Telegram
+2. Send `/start`
+3. Copy your user ID
 
-See INSTALL.md for detailed instructions.
+### 3. Configure App
 
-## Environment Variables
+SSH into your Umbrel:
+```bash
+ssh umbrel@umbrel.local
+```
 
-- `APP_TG_TOKEN` - Your Telegram bot token
-- `APP_PB_ADMIN` - PocketBase admin email
-- `APP_PB_PASSWORD` - PocketBase admin password
-- `APP_MASTER_PASSWORD` - Master password for encryption
-- `APP_ALLOWED_USERS` - Comma-separated list of allowed Telegram user IDs
+Edit configuration:
+```bash
+cd ~/umbrel/app-data/vault-telegram-vault
+nano docker-compose.yml
+```
+
+Update these values:
+```yaml
+environment:
+  TG_TOKEN: "123456789:ABCdefGHIjklMNOpqrsTUVwxyz"  # From @BotFather
+  PB_ADMIN: "admin@vault.local"                      # Any email
+  PB_PASSWORD: "SecurePassword123"                   # Min 8 chars
+  MASTER_PASSWORD: "VeryLongSecureMasterPassword"    # Min 32 chars recommended
+  ALLOWED_USERS: "123456789"                         # Your Telegram ID
+```
+
+Save (Ctrl+O, Enter, Ctrl+X) and restart:
+```bash
+cd ~/umbrel
+docker-compose restart
+```
 
 ## Usage
 
-Save password: `example.com username password123`
-Search: `example`
+Send to your bot:
+- `github.com mylogin mypassword` - Save password
+- `github` - Search and get password
+- Click "Delete" - Remove password
+
+All messages auto-delete after 2 minutes for security.
+
+## Security Notes
+
+- Master password encrypts all data with AES-256-GCM
+- If you lose master password, data cannot be recovered
+- Only specified Telegram user IDs can access the bot
+- Use strong, unique master password (32+ characters)
