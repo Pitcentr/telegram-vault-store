@@ -8,6 +8,8 @@ services:
     init: true
     restart: unless-stopped
     stop_grace_period: 1m
+    volumes:
+      - ${APP_DATA_DIR}/.env:/app/.env
     environment:
       TG_TOKEN: ${APP_TELEGRAM_TOKEN}
       PB_URL: ${APP_POCKETBASE_URL:-http://pocketbase_server:8090}
