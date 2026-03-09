@@ -5,7 +5,7 @@ name: Telegram Vault
 tagline: Encrypted Telegram password manager
 icon: https://raw.githubusercontent.com/pitcentr/telegram-vault-store/main/vault-telegram-vault/metadata/icon.svg
 category: security
-version: "1.2.1"
+version: "1.2.2"
 description: >-
   Telegram password manager with AES-256 encryption and PocketBase storage.
   
@@ -23,7 +23,7 @@ support: https://github.com/pitcentr/telegram-vault/issues
 gallery:
   - https://raw.githubusercontent.com/pitcentr/telegram-vault-store/main/vault-telegram-vault/metadata/screenshots/screenshot1.png
 releaseNotes: >-
-  Fixed syntax error in bot startup code.
+  Fixed bot initialization when environment variables are missing.
 dependencies: []
 path: ""
 defaultUsername: ""
