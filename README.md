@@ -197,6 +197,11 @@ docker push pitcentr/telegram-vault:latest
 - [GITHUB-ACTIONS-SETUP.md](GITHUB-ACTIONS-SETUP.md) - Подробная инструкция по CI/CD
 - [DOCKER-BUILD.md](vault-telegram-vault/DOCKER-BUILD.md) - Ручная сборка Docker образа
 
+### Настройка и использование
+- [КАК-НАСТРОИТЬ-ПЕРЕМЕННЫЕ.md](КАК-НАСТРОИТЬ-ПЕРЕМЕННЫЕ.md) - Как заполнить переменные окружения
+- [ПОЛУЧЕНИЕ-ТОКЕНА-БОТА.md](ПОЛУЧЕНИЕ-ТОКЕНА-БОТА.md) - Как получить токен бота и Telegram ID
+- [WEB-DASHBOARD-ADDED.md](WEB-DASHBOARD-ADDED.md) - Веб-дашборд для мониторинга
+
 ### Дополнительно
 - [DEPLOYMENT-CHECKLIST.md](DEPLOYMENT-CHECKLIST.md) - Чеклист развертывания
 - [INDEX-DOCUMENTATION.md](INDEX-DOCUMENTATION.md) - Индекс всей документации
