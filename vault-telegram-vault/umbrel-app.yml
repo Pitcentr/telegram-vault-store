@@ -5,7 +5,7 @@ name: Telegram Vault
 tagline: Encrypted Telegram password manager
 icon: https://raw.githubusercontent.com/pitcentr/telegram-vault-store/main/vault-telegram-vault/metadata/icon.svg
 category: security
-version: "1.2.2"
+version: "1.2.3"
 description: >-
   Telegram password manager with AES-256 encryption and PocketBase storage.
   
@@ -23,53 +23,10 @@ support: https://github.com/pitcentr/telegram-vault/issues
 gallery:
   - https://raw.githubusercontent.com/pitcentr/telegram-vault-store/main/vault-telegram-vault/metadata/screenshots/screenshot1.png
 releaseNotes: >-
-  Fixed bot initialization when environment variables are missing.
+  Configure via SSH after installation. See app logs for instructions.
 dependencies: []
 path: ""
 defaultUsername: ""
 defaultPassword: ""
 torOnly: false
-
-settings:
-  telegram_token:
-    type: string
-    label: Telegram Bot Token
-    description: Get from @BotFather in Telegram
-    placeholder: "123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
-    required: true
-  
-  pocketbase_admin:
-    type: string
-    label: PocketBase Admin Email
-    description: Email for PocketBase admin account
-    default: "admin@vault.local"
-    required: true
-  
-  pocketbase_password:
-    type: password
-    label: PocketBase Admin Password
-    description: Password for PocketBase (minimum 8 characters)
-    placeholder: "SecurePassword123"
-    required: true
-  
-  master_password:
-    type: password
-    label: Master Password for Encryption
-    description: "WARNING: If lost, all data will be unrecoverable! Minimum 32 characters recommended."
-    placeholder: "MyVeryLongAndSecureMasterPassword123456"
-    required: true
-  
-  allowed_users:
-    type: string
-    label: Allowed Telegram User IDs
-    description: Comma-separated list of user IDs. Get your ID from @userinfobot
-    placeholder: "123456789,987654321"
-    required: true
-  
-  pocketbase_url:
-    type: string
-    label: PocketBase URL
-    description: URL to PocketBase instance (optional)
-    default: "http://pocketbase_server:8090"
-    required: false
 
