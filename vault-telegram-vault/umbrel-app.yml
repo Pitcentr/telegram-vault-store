@@ -5,7 +5,7 @@ name: Telegram Vault
 tagline: Encrypted Telegram password manager
 icon: https://raw.githubusercontent.com/pitcentr/telegram-vault-store/main/vault-telegram-vault/metadata/icon.svg
 category: security
-version: "1.0.8"
+version: "1.0.9"
 description: >-
   Telegram password manager with AES-256 encryption and PocketBase storage.
   
@@ -13,10 +13,7 @@ description: >-
   Secure your passwords using Telegram as interface with military-grade encryption.
   
   
-  Click the app icon to view logs and monitor bot activity.
-  
-  
-  IMPORTANT: After installation, configure environment variables via SSH in .env file.
+  After installation, configure via SSH. Check logs for instructions.
 developer: Self Hosted
 website: https://github.com/pitcentr/telegram-vault
 submitter: Self
@@ -26,7 +23,7 @@ support: https://github.com/pitcentr/telegram-vault/issues
 gallery:
   - https://raw.githubusercontent.com/pitcentr/telegram-vault-store/main/vault-telegram-vault/metadata/screenshots/screenshot1.png
 releaseNotes: >-
-  Fixed environment variables loading from .env file.
+  App now stays running during configuration. Check logs for setup instructions.
 dependencies: []
 path: ""
 defaultUsername: ""

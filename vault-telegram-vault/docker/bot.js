@@ -13,9 +13,45 @@ const missingVars = requiredEnvVars.filter(v => !process.env[v])
 
 if (missingVars.length > 0) {
   const msg = 'Missing required environment variables: ' + missingVars.join(', ')
+  console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+  console.error('⚠️  CONFIGURATION REQUIRED')
+  console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+  console.error('')
   console.error(msg)
-  console.error('Please set all required variables in app settings')
-  process.exit(1)
+  console.error('')
+  console.error('Please configure environment variables:')
+  console.error('')
+  console.error('1. Connect via SSH:')
+  console.error('   ssh umbrel@umbrel.local')
+  console.error('')
+  console.error('2. Edit docker-compose.yml:')
+  console.error('   cd ~/umbrel/app-data/vault-telegram-vault')
+  console.error('   nano docker-compose.yml')
+  console.error('')
+  console.error('3. Add your values in environment section:')
+  console.error('   TG_TOKEN: "YOUR_TOKEN_FROM_BOTFATHER"')
+  console.error('   PB_ADMIN: "admin@vault.local"')
+  console.error('   PB_PASSWORD: "YOUR_PASSWORD"')
+  console.error('   MASTER_PASSWORD: "YOUR_LONG_MASTER_PASSWORD"')
+  console.error('   ALLOWED_USERS: "YOUR_TELEGRAM_ID"')
+  console.error('')
+  console.error('4. Restart the app:')
+  console.error('   cd ~/umbrel')
+  console.error('   ./scripts/app restart vault-telegram-vault')
+  console.error('')
+  console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+  
+  // Don't exit, keep container running so user can see logs
+  console.log('')
+  console.log('Waiting for configuration... (container will stay running)')
+  console.log('Check logs: Umbrel → Apps → Telegram Vault → Logs')
+  
+  // Keep process alive
+  setInterval(() => {
+    console.log('[' + new Date().toISOString() + '] Waiting for environment variables...')
+  }, 60000) // Log every minute
+  
+  return // Don't start the bot
 }
 
 console.log('Starting Telegram Vault bot...')
