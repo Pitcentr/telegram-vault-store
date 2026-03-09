@@ -8,12 +8,10 @@ services:
     init: true
     restart: unless-stopped
     stop_grace_period: 1m
-    env_file:
-      - .env
     environment:
-      TG_TOKEN: ${APP_TG_TOKEN}
+      TG_TOKEN: ${APP_TELEGRAM_TOKEN}
       PB_URL: ${APP_POCKETBASE_URL:-http://pocketbase_server:8090}
-      PB_ADMIN: ${APP_PB_ADMIN}
-      PB_PASSWORD: ${APP_PB_PASSWORD}
+      PB_ADMIN: ${APP_POCKETBASE_ADMIN}
+      PB_PASSWORD: ${APP_POCKETBASE_PASSWORD}
       MASTER_PASSWORD: ${APP_MASTER_PASSWORD}
       ALLOWED_USERS: ${APP_ALLOWED_USERS}
