@@ -1,7 +1,11 @@
 
-# Telegram Vault – Umbrel App (Production)
+# Telegram Vault – Umbrel App
 
-Production-ready Umbrel community app для безопасного хранения паролей через Telegram бота.
+Umbrel community app для безопасного хранения паролей через Telegram бота.
+
+## ⚠️ Важно: Исправление проблемы установки
+
+Если приложение останавливается на 1% установки, см. [UMBREL-INSTALLATION-FIX.md](UMBREL-INSTALLATION-FIX.md) или [SUMMARY-RU.md](SUMMARY-RU.md) (на русском).
 
 ## 🔐 Возможности
 
@@ -19,21 +23,32 @@ Production-ready Umbrel community app для безопасного хранен
 
 ```bash
 # Откройте https://cloudconvert.com/svg-to-png
-# Загрузите: apps/telegram-vault/metadata/screenshots/screenshot1.svg
+# Загрузите: vault-telegram-vault/metadata/screenshots/screenshot1.svg
 # Скачайте как: screenshot1.png
 # Или используйте screenshot-template.html (см. SETUP.md)
 ```
 
-### 2. Обновить ссылки
+### 2. Собрать и опубликовать Docker образ (ОБЯЗАТЕЛЬНО!)
 
-В `apps/telegram-vault/umbrel-app.yml` замените:
+```bash
+cd vault-telegram-vault/docker
+docker build -t pitcentr/telegram-vault:latest .
+docker login
+docker push pitcentr/telegram-vault:latest
+```
+
+См. [DOCKER-BUILD.md](vault-telegram-vault/DOCKER-BUILD.md) для подробностей.
+
+### 3. Обновить ссылки
+
+В `vault-telegram-vault/umbrel-app.yml` замените:
 ```yaml
 website: https://github.com/pitcentr/telegram-vault-store
 repo: https://github.com/pitcentr/telegram-vault-store
 support: https://github.com/pitcentr/telegram-vault-store/issues
 ```
 
-### 3. Опубликовать на GitHub
+### 4. Опубликовать на GitHub
 
 ```bash
 git init
@@ -44,11 +59,13 @@ git remote add origin https://github.com/pitcentr/telegram-vault-store.git
 git push -u origin main
 ```
 
-### 4. Сделать Docker image публичным
+### 5. Сделать Docker image публичным
 
-После успешной сборки в GitHub Actions:
+Если используете GitHub Container Registry:
 1. GitHub → Packages → telegram-vault
 2. Package settings → Change visibility → Public
+
+Если используете Docker Hub - образ уже публичный после `docker push`.
 
 ## 🚀 Установка в Umbrel
 
@@ -109,19 +126,20 @@ Password: mypassword123
 ```
 telegram-vault-store/
 ├── umbrel-app-store.yml          # Конфигурация App Store
-├── apps/telegram-vault/
+├── vault-telegram-vault/
 │   ├── umbrel-app.yml            # Манифест приложения
 │   ├── docker-compose.yml        # Docker конфигурация
 │   ├── docker/
 │   │   ├── Dockerfile            # Docker образ
 │   │   ├── bot.js                # Telegram бот
 │   │   └── package.json          # Зависимости
-│   └── metadata/
-│       ├── icon.svg              # Иконка приложения
-│       └── screenshots/
-│           └── screenshot1.png   # Скриншот интерфейса
-└── .github/workflows/
-    └── docker.yml                # CI/CD pipeline
+│   ├── metadata/
+│   │   ├── icon.svg              # Иконка приложения
+│   │   └── screenshots/
+│   │       └── screenshot1.png   # Скриншот интерфейса
+│   └── scripts/
+│       └── configure             # Скрипт настройки
+└── UMBREL-INSTALLATION-FIX.md    # Инструкция по исправлению
 ```
 
 ## 🛠️ Разработка
@@ -129,7 +147,7 @@ telegram-vault-store/
 ### Локальный запуск
 
 ```bash
-cd apps/telegram-vault/docker
+cd vault-telegram-vault/docker
 npm install
 
 # Создайте .env файл:
@@ -143,16 +161,26 @@ ALLOWED_USERS=123456789
 node bot.js
 ```
 
-### Сборка Docker image
+### Сборка и публикация Docker image
 
 ```bash
-cd apps/telegram-vault/docker
-docker build -t telegram-vault .
-docker run --env-file .env telegram-vault
+cd vault-telegram-vault/docker
+docker build -t pitcentr/telegram-vault:latest .
+docker login
+docker push pitcentr/telegram-vault:latest
 ```
+
+См. [DOCKER-BUILD.md](vault-telegram-vault/DOCKER-BUILD.md) для подробностей.
 
 ## 📚 Документация
 
+### Установка и исправление проблем
+- [UMBREL-INSTALLATION-FIX.md](UMBREL-INSTALLATION-FIX.md) - Исправление проблемы установки (English)
+- [SUMMARY-RU.md](SUMMARY-RU.md) - Краткое резюме исправлений (Русский)
+- [DEPLOYMENT-CHECKLIST.md](DEPLOYMENT-CHECKLIST.md) - Чеклист развертывания
+- [DOCKER-BUILD.md](vault-telegram-vault/DOCKER-BUILD.md) - Инструкция по сборке Docker образа
+
+### Дополнительно
 - [SETUP.md](SETUP.md) - Подробная инструкция по установке
 - [CHECKLIST.md](CHECKLIST.md) - Чеклист соответствия требованиям
 - [PRE-PUBLISH-CHECKLIST.md](PRE-PUBLISH-CHECKLIST.md) - Проверка перед публикацией
