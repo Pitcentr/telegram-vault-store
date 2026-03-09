@@ -2,11 +2,6 @@
 version: "3.7"
 
 services:
-  app_proxy:
-    environment:
-      APP_HOST: $APP_VAULT_TELEGRAM_VAULT_APP_IP
-      APP_PORT: 8080
-
   app:
     image: pitcentr/telegram-vault:latest
     user: "1000:1000"
@@ -20,4 +15,3 @@ services:
       PB_PASSWORD: ${APP_PB_PASSWORD}
       MASTER_PASSWORD: ${APP_MASTER_PASSWORD}
       ALLOWED_USERS: ${APP_ALLOWED_USERS}
-      WEB_PORT: 8080
