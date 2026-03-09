@@ -15,10 +15,9 @@ services:
     stop_grace_period: 1m
     environment:
       TG_TOKEN: ${APP_TG_TOKEN}
-      PB_URL: http://pocketbase_server:8090
+      PB_URL: ${APP_POCKETBASE_URL:-http://pocketbase_server:8090}
       PB_ADMIN: ${APP_PB_ADMIN}
       PB_PASSWORD: ${APP_PB_PASSWORD}
       MASTER_PASSWORD: ${APP_MASTER_PASSWORD}
       ALLOWED_USERS: ${APP_ALLOWED_USERS}
-    depends_on:
-      - pocketbase
+      WEB_PORT: 8080
