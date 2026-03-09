@@ -28,7 +28,15 @@ Umbrel community app для безопасного хранения пароле
 # Или используйте screenshot-template.html (см. SETUP.md)
 ```
 
-### 2. Собрать и опубликовать Docker образ (ОБЯЗАТЕЛЬНО!)
+### 2. Настроить GitHub Actions (РЕКОМЕНДУЕТСЯ)
+
+**Автоматическая сборка и публикация Docker образа:**
+
+См. **[БЫСТРАЯ-НАСТРОЙКА-CI.md](БЫСТРАЯ-НАСТРОЙКА-CI.md)** - 3 простых шага
+
+Или подробную инструкцию: [GITHUB-ACTIONS-SETUP.md](GITHUB-ACTIONS-SETUP.md)
+
+**Альтернатива:** Ручная сборка
 
 ```bash
 cd vault-telegram-vault/docker
@@ -53,11 +61,16 @@ support: https://github.com/pitcentr/telegram-vault-store/issues
 ```bash
 git init
 git add .
-git commit -m "Initial commit: Telegram Vault for Umbrel"
+git commit -m "Initial commit: Telegram Vault for Umbrel with GitHub Actions"
 git branch -M main
 git remote add origin https://github.com/pitcentr/telegram-vault-store.git
 git push -u origin main
 ```
+
+**Если используете GitHub Actions:**
+- Перейдите на GitHub → Actions
+- Дождитесь завершения сборки (3-5 минут)
+- Проверьте Docker Hub: https://hub.docker.com/r/pitcentr/telegram-vault
 
 ### 5. Сделать Docker image публичным
 
@@ -177,10 +190,16 @@ docker push pitcentr/telegram-vault:latest
 ### Установка и исправление проблем
 - [UMBREL-INSTALLATION-FIX.md](UMBREL-INSTALLATION-FIX.md) - Исправление проблемы установки (English)
 - [SUMMARY-RU.md](SUMMARY-RU.md) - Краткое резюме исправлений (Русский)
-- [DEPLOYMENT-CHECKLIST.md](DEPLOYMENT-CHECKLIST.md) - Чеклист развертывания
-- [DOCKER-BUILD.md](vault-telegram-vault/DOCKER-BUILD.md) - Инструкция по сборке Docker образа
+- [ЧТО-ДЕЛАТЬ-ДАЛЬШЕ.md](ЧТО-ДЕЛАТЬ-ДАЛЬШЕ.md) - Пошаговая инструкция
+
+### CI/CD и Docker
+- [БЫСТРАЯ-НАСТРОЙКА-CI.md](БЫСТРАЯ-НАСТРОЙКА-CI.md) - Настройка GitHub Actions (3 шага)
+- [GITHUB-ACTIONS-SETUP.md](GITHUB-ACTIONS-SETUP.md) - Подробная инструкция по CI/CD
+- [DOCKER-BUILD.md](vault-telegram-vault/DOCKER-BUILD.md) - Ручная сборка Docker образа
 
 ### Дополнительно
+- [DEPLOYMENT-CHECKLIST.md](DEPLOYMENT-CHECKLIST.md) - Чеклист развертывания
+- [INDEX-DOCUMENTATION.md](INDEX-DOCUMENTATION.md) - Индекс всей документации
 - [SETUP.md](SETUP.md) - Подробная инструкция по установке
 - [CHECKLIST.md](CHECKLIST.md) - Чеклист соответствия требованиям
 - [PRE-PUBLISH-CHECKLIST.md](PRE-PUBLISH-CHECKLIST.md) - Проверка перед публикацией

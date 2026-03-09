@@ -20,7 +20,12 @@ If your app is stuck at 1% during Umbrel installation:
 
 ## 🐳 Docker Instructions
 
-- **[vault-telegram-vault/DOCKER-BUILD.md](vault-telegram-vault/DOCKER-BUILD.md)** - How to build and publish Docker image
+### Automated (Recommended)
+- **[БЫСТРАЯ-НАСТРОЙКА-CI.md](БЫСТРАЯ-НАСТРОЙКА-CI.md)** - GitHub Actions setup (3 steps) 🇷🇺
+- **[GITHUB-ACTIONS-SETUP.md](GITHUB-ACTIONS-SETUP.md)** - Detailed GitHub Actions guide 🇬🇧
+
+### Manual
+- **[vault-telegram-vault/DOCKER-BUILD.md](vault-telegram-vault/DOCKER-BUILD.md)** - How to build and publish Docker image manually
 
 ## 📋 What Was Fixed
 
@@ -36,6 +41,27 @@ If your app is stuck at 1% during Umbrel installation:
 - `README.md` - Updated paths and added fix documentation
 
 ## 🚀 Quick Start
+
+### Option 1: GitHub Actions (Recommended)
+
+```bash
+# 1. Setup GitHub Actions (see БЫСТРАЯ-НАСТРОЙКА-CI.md)
+#    - Create Docker Hub token
+#    - Create repository on Docker Hub
+#    - Add secrets to GitHub
+
+# 2. Push code (triggers automatic build)
+git add .
+git commit -m "Fix: Umbrel installation with GitHub Actions"
+git push
+
+# 3. Wait for build to complete (3-5 minutes)
+#    Check: GitHub → Actions
+
+# 4. Install in Umbrel UI
+```
+
+### Option 2: Manual Build
 
 ```bash
 # 1. Build and publish Docker image
