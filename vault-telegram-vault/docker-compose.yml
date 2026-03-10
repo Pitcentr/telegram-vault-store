@@ -9,6 +9,3 @@ services:
     restart: unless-stopped
     stop_grace_period: 1m
     env_file: .env
-    environment:
-      # Default PocketBase URL (can be overridden in .env)
-      PB_URL: "http://pocketbase_server:8090"

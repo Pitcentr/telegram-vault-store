@@ -15,14 +15,14 @@ After installation, configure via SSH:
 ```bash
 ssh umbrel@umbrel.local
 cd ~/umbrel/app-data/vault-telegram-vault
-cp .env.example .env
 nano .env
 ```
 
-Edit the .env file with your values:
+Fill in your values (replace empty values):
 
 ```bash
 TG_TOKEN=YOUR_BOT_TOKEN_FROM_BOTFATHER
+PB_URL=http://pocketbase_server:8090
 PB_ADMIN=admin@vault.local
 PB_PASSWORD=YourSecurePassword123
 MASTER_PASSWORD=YourVeryLongMasterPassword

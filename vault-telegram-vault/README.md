@@ -21,16 +21,16 @@ SSH into your Umbrel:
 ssh umbrel@umbrel.local
 ```
 
-Create configuration file:
+Edit configuration file:
 ```bash
 cd ~/umbrel/app-data/vault-telegram-vault
-cp .env.example .env
 nano .env
 ```
 
-Edit the .env file with your values:
+Fill in your values (replace empty values):
 ```bash
 TG_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
+PB_URL=http://pocketbase_server:8090
 PB_ADMIN=admin@vault.local
 PB_PASSWORD=SecurePassword123
 MASTER_PASSWORD=MyVeryLongAndSecureMasterPasswordForEncryption123456
