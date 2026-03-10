@@ -32,28 +32,20 @@ ssh umbrel@umbrel.local
 cd ~/umbrel/app-data/vault-telegram-vault
 ```
 
-### Edit .env file:
+### Edit docker-compose.yml:
 ```bash
-nano .env
+nano docker-compose.yml
 ```
 
-### Fill in your values:
-```bash
-# Get from @BotFather in Telegram
-TG_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
-
-# PocketBase URL (default is fine)
-PB_URL=http://pocketbase_server:8090
-
-# PocketBase admin credentials (choose any)
-PB_ADMIN=admin@vault.local
-PB_PASSWORD=SecurePassword123
-
-# Master password for encryption (32+ chars recommended)
-MASTER_PASSWORD=MyVeryLongAndSecureMasterPasswordForEncryption123456
-
-# Your Telegram user ID (get from @userinfobot)
-ALLOWED_USERS=123456789
+### Fill in your values in the environment section:
+```yaml
+environment:
+  TG_TOKEN: "123456789:ABCdefGHIjklMNOpqrsTUVwxyz"  # From @BotFather
+  PB_URL: "http://pocketbase_server:8090"
+  PB_ADMIN: "admin@vault.local"
+  PB_PASSWORD: "SecurePassword123"
+  MASTER_PASSWORD: "MyVeryLongAndSecureMasterPasswordForEncryption123456"
+  ALLOWED_USERS: "123456789"  # From @userinfobot
 ```
 
 ### Save and exit:

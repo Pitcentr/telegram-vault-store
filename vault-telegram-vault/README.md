@@ -21,20 +21,21 @@ SSH into your Umbrel:
 ssh umbrel@umbrel.local
 ```
 
-Edit configuration file:
+Edit configuration:
 ```bash
 cd ~/umbrel/app-data/vault-telegram-vault
-nano .env
+nano docker-compose.yml
 ```
 
-Fill in your values (replace empty values):
-```bash
-TG_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
-PB_URL=http://pocketbase_server:8090
-PB_ADMIN=admin@vault.local
-PB_PASSWORD=SecurePassword123
-MASTER_PASSWORD=MyVeryLongAndSecureMasterPasswordForEncryption123456
-ALLOWED_USERS=123456789
+Update the environment section with your values:
+```yaml
+environment:
+  TG_TOKEN: "123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
+  PB_URL: "http://pocketbase_server:8090"
+  PB_ADMIN: "admin@vault.local"
+  PB_PASSWORD: "SecurePassword123"
+  MASTER_PASSWORD: "MyVeryLongAndSecureMasterPasswordForEncryption123456"
+  ALLOWED_USERS: "123456789"
 ```
 
 Save (Ctrl+O, Enter, Ctrl+X) and restart:

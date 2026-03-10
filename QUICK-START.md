@@ -20,16 +20,18 @@ URL: https://github.com/Pitcentr/telegram-vault-store
 ```bash
 ssh umbrel@umbrel.local
 cd ~/umbrel/app-data/vault-telegram-vault
-nano .env
+nano docker-compose.yml
 ```
 
-Заполни:
-```
-TG_TOKEN=твой_токен_от_BotFather
-PB_ADMIN=admin@vault.local
-PB_PASSWORD=твой_пароль
-MASTER_PASSWORD=длинный_мастер_пароль_32_символа
-ALLOWED_USERS=твой_telegram_id
+Заполни в секции environment:
+```yaml
+environment:
+  TG_TOKEN: "твой_токен_от_BotFather"
+  PB_URL: "http://pocketbase_server:8090"
+  PB_ADMIN: "admin@vault.local"
+  PB_PASSWORD: "твой_пароль"
+  MASTER_PASSWORD: "длинный_мастер_пароль_32_символа"
+  ALLOWED_USERS: "твой_telegram_id"
 ```
 
 Сохрани (Ctrl+O, Enter, Ctrl+X)
