@@ -41,7 +41,7 @@ nano docker-compose.yml
 ```yaml
 environment:
   TG_TOKEN: "123456789:ABCdefGHIjklMNOpqrsTUVwxyz"  # From @BotFather
-  PB_URL: "http://pocketbase_server:8090"
+  PB_URL: "http://pocketbase_app_1:8090"  # Your existing PocketBase
   PB_ADMIN: "admin@vault.local"
   PB_PASSWORD: "SecurePassword123"
   MASTER_PASSWORD: "MyVeryLongAndSecureMasterPasswordForEncryption123456"
