@@ -15,26 +15,25 @@ After installation, configure via SSH:
 ```bash
 ssh umbrel@umbrel.local
 cd ~/umbrel/app-data/vault-telegram-vault
-nano docker-compose.yml
+cp .env.example .env
+nano .env
 ```
 
-Edit the environment variables:
+Edit the .env file with your values:
 
-```yaml
-environment:
-  TG_TOKEN: "YOUR_BOT_TOKEN_FROM_BOTFATHER"
-  PB_URL: "http://pocketbase_server:8090"
-  PB_ADMIN: "admin@vault.local"
-  PB_PASSWORD: "YourSecurePassword123"
-  MASTER_PASSWORD: "YourVeryLongMasterPassword"
-  ALLOWED_USERS: "123456789,987654321"
+```bash
+TG_TOKEN=YOUR_BOT_TOKEN_FROM_BOTFATHER
+PB_ADMIN=admin@vault.local
+PB_PASSWORD=YourSecurePassword123
+MASTER_PASSWORD=YourVeryLongMasterPassword
+ALLOWED_USERS=123456789,987654321
 ```
 
 Save and restart:
 
 ```bash
 cd ~/umbrel
-docker-compose restart vault-telegram-vault_app_1
+docker-compose restart
 ```
 
 ## Getting Bot Token

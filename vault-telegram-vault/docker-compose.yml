@@ -8,19 +8,7 @@ services:
     init: true
     restart: unless-stopped
     stop_grace_period: 1m
+    env_file: .env
     environment:
-      # Get from @BotFather in Telegram
-      TG_TOKEN: ""
-      
-      # PocketBase URL (default is fine)
+      # Default PocketBase URL (can be overridden in .env)
       PB_URL: "http://pocketbase_server:8090"
-      
-      # PocketBase admin credentials (choose any)
-      PB_ADMIN: ""
-      PB_PASSWORD: ""
-      
-      # Master password for encryption (32+ chars recommended)
-      MASTER_PASSWORD: ""
-      
-      # Your Telegram user ID (get from @userinfobot)
-      ALLOWED_USERS: ""

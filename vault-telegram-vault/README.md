@@ -21,20 +21,20 @@ SSH into your Umbrel:
 ssh umbrel@umbrel.local
 ```
 
-Edit configuration:
+Create configuration file:
 ```bash
 cd ~/umbrel/app-data/vault-telegram-vault
-nano docker-compose.yml
+cp .env.example .env
+nano .env
 ```
 
-Update these values:
-```yaml
-environment:
-  TG_TOKEN: "123456789:ABCdefGHIjklMNOpqrsTUVwxyz"  # From @BotFather
-  PB_ADMIN: "admin@vault.local"                      # Any email
-  PB_PASSWORD: "SecurePassword123"                   # Min 8 chars
-  MASTER_PASSWORD: "VeryLongSecureMasterPassword"    # Min 32 chars recommended
-  ALLOWED_USERS: "123456789"                         # Your Telegram ID
+Edit the .env file with your values:
+```bash
+TG_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
+PB_ADMIN=admin@vault.local
+PB_PASSWORD=SecurePassword123
+MASTER_PASSWORD=MyVeryLongAndSecureMasterPasswordForEncryption123456
+ALLOWED_USERS=123456789
 ```
 
 Save (Ctrl+O, Enter, Ctrl+X) and restart:
@@ -58,3 +58,4 @@ All messages auto-delete after 2 minutes for security.
 - If you lose master password, data cannot be recovered
 - Only specified Telegram user IDs can access the bot
 - Use strong, unique master password (32+ characters)
+- .env file contains sensitive data - keep it secure
