@@ -5,6 +5,7 @@ import dotenv from "dotenv"
 import Fuse from "fuse.js"
 import crypto from "crypto"
 
+// Load environment variables
 dotenv.config()
 
 // Main function
