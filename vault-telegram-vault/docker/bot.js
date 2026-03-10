@@ -55,7 +55,7 @@ async function main() {
   const pb=new PocketBase(process.env.PB_URL)
 
 try {
-  await pb.admins.authWithPassword(
+  await pb.collection("_superusers").authWithPassword(
     process.env.PB_ADMIN,
     process.env.PB_PASSWORD
   )
