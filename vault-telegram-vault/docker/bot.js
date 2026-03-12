@@ -1,4 +1,4 @@
-import { Bot, InlineKeyboard } from "grammy";
+import { Bot, InlineKeyboard, Keyboard } from "grammy";
 import PocketBase from "pocketbase";
 import dotenv from "dotenv";
 import Fuse from "fuse.js";
@@ -8,7 +8,8 @@ import crypto from "crypto";
 dotenv.config();
 
 const REQUIRED_ENV = ['TG_TOKEN', 'PB_URL', 'PB_ADMIN', 'PB_PASSWORD', 'MASTER_PASSWORD', 'ALLOWED_USERS'];
-const AUTO_DELETE_TIMEOUT = 60000; // 60 секунд
+const AUTO_DELETE_TIMEOUT = 60000;     // 60 секунд для обычных сообщений
+const PASSWORD_SHOW_TIMEOUT = 90000;   // 90 секунд для паролей
 
 // ====================== УТИЛИТЫ ======================
 function log(level, message, data = null) {
@@ -20,7 +21,6 @@ function log(level, message, data = null) {
 function normalizeUrl(url) {
   try {
     const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
-    // Убираем www. и query/hash
     let hostname = urlObj.hostname.replace(/^www\./i, '');
     return `${urlObj.protocol}//${hostname}${urlObj.pathname}`.replace(/\/$/, '');
   } catch {
@@ -35,12 +35,9 @@ function getKey() {
 function encrypt(text) {
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv("aes-256-gcm", getKey(), iv);
-
   let encrypted = cipher.update(text, "utf8", "hex");
   encrypted += cipher.final("hex");
-
   const tag = cipher.getAuthTag().toString("hex");
-
   return { encrypted, iv: iv.toString("hex"), tag };
 }
 
@@ -48,12 +45,11 @@ function decrypt(encrypted, ivHex, tagHex) {
   try {
     const decipher = crypto.createDecipheriv("aes-256-gcm", getKey(), Buffer.from(ivHex, "hex"));
     decipher.setAuthTag(Buffer.from(tagHex, "hex"));
-
     let decrypted = decipher.update(encrypted, "hex", "utf8");
     decrypted += decipher.final("utf8");
     return decrypted;
   } catch (err) {
-    throw new Error("Ошибка расшифровки (возможно, повреждённые данные)");
+    throw new Error("Ошибка расшифровки (возможно, повреждённые данные или неверный мастер-пароль)");
   }
 }
 
@@ -65,29 +61,23 @@ function autoDelete(chatId, messageId, delay = AUTO_DELETE_TIMEOUT) {
 
 // ====================== ГЛАВНАЯ ФУНКЦИЯ ======================
 async function main() {
-  // Проверка переменных окружения
   const missing = REQUIRED_ENV.filter(v => !process.env[v]);
   if (missing.length > 0) {
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.error('⚠️  ОТСУТСТВУЮТ ОБЯЗАТЕЛЬНЫЕ ПЕРЕМЕННЫЕ:');
+    console.error('⚠️ ОТСУТСТВУЮТ ОБЯЗАТЕЛЬНЫЕ ПЕРЕМЕННЫЕ:');
     console.error(missing.join(', '));
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.error('Настройте в Umbrel → Apps → Telegram Vault → Settings');
-    
-    while (true) {
-      await new Promise(r => setTimeout(r, 60000));
-      console.log('[' + new Date().toISOString() + '] Ожидание конфигурации...');
-    }
+    while (true) await new Promise(r => setTimeout(r, 60000));
   }
 
   const allowedUsers = process.env.ALLOWED_USERS.split(',').map(id => id.trim());
-
   log('INFO', `Запуск Telegram Vault. Разрешено пользователей: ${allowedUsers.length}`);
 
   const bot = new Bot(process.env.TG_TOKEN);
   const pb = new PocketBase(process.env.PB_URL);
 
-  // Аутентификация в PocketBase
+  // Аутентификация
   try {
     await pb.collection("_superusers").authWithPassword(process.env.PB_ADMIN, process.env.PB_PASSWORD);
     log('INFO', 'Успешная аутентификация в PocketBase');
@@ -96,13 +86,19 @@ async function main() {
     process.exit(1);
   }
 
-  // ==================== ИНИЦИАЛИЗАЦИЯ + МИГРАЦИЯ БД ====================
   await initDatabase(pb);
 
-  // Хранилище ожидающих подтверждений (перезапись)
+  // Меню команд Telegram (появляется в интерфейсе)
+  await bot.api.setMyCommands([
+    { command: "start", description: "Главное меню и пример шаблона" },
+    { command: "list",  description: "Показать все сохранённые пароли" },
+    { command: "help",  description: "Справка по использованию" }
+  ]);
+
+  // Хранилище ожидающих подтверждений перезаписи
   const pendingConfirmations = new Map();
 
-  // Автоочистка устаревших подтверждений
+  // Автоочистка старых подтверждений
   setInterval(() => {
     const now = Date.now();
     for (const [userId, data] of pendingConfirmations.entries()) {
@@ -110,7 +106,7 @@ async function main() {
     }
   }, 30000);
 
-  // ==================== ХЕЛПЕРЫ (с фильтром по пользователю) ====================
+  // ==================== ХЕЛПЕРЫ ====================
   async function getUserSecrets(userId) {
     return pb.collection("secrets").getFullList({
       filter: `created_by = "${userId}"`,
@@ -118,34 +114,32 @@ async function main() {
     });
   }
 
+  // Улучшенный поиск: точный → подстрока → fuzzy
   async function findSecrets(userId, searchQuery) {
     const normalized = normalizeUrl(searchQuery);
-    const userSecrets = await getUserSecrets(userId);
+    const all = await getUserSecrets(userId);
 
-    // 1. Точное совпадение по URL
-    let records = userSecrets.filter(item => item.url === normalized);
+    // 1. Точное совпадение URL
+    let records = all.filter(item => item.url === normalized);
+    if (records.length > 0) return records;
 
-    // 2. Поиск по домену
-    if (records.length === 0) {
-      try {
-        const domain = new URL(normalized.startsWith('http') ? normalized : `https://${normalized}`).hostname;
-        records = userSecrets.filter(item => {
-          try {
-            return new URL(item.url).hostname === domain;
-          } catch {
-            return false;
-          }
-        });
-      } catch {}
-    }
+    // 2. Подстрока (частичный URL или домен)
+    const lowerQuery = searchQuery.toLowerCase();
+    records = all.filter(item => {
+      const itemUrl = item.url.toLowerCase();
+      return itemUrl.includes(lowerQuery) ||
+             lowerQuery.includes(itemUrl) ||
+             itemUrl.includes(normalized.toLowerCase());
+    });
+    if (records.length > 0) return records;
 
-    // 3. Fuzzy-поиск
-    if (records.length === 0) {
-      const fuse = new Fuse(userSecrets, { keys: ["url"], threshold: 0.4 });
-      records = fuse.search(normalized).map(r => r.item);
-    }
-
-    return records;
+    // 3. Fuzzy-поиск (по URL, логину и комментарию)
+    const fuse = new Fuse(all, {
+      keys: ["url", "login", "comment"],
+      threshold: 0.35,
+      ignoreLocation: true
+    });
+    return fuse.search(searchQuery).map(r => r.item);
   }
 
   async function saveSecret(userId, url, login, password, comment) {
@@ -161,152 +155,149 @@ async function main() {
     });
   }
 
-  // ==================== ОБРАБОТКА СООБЩЕНИЙ ====================
+  // ==================== ОБРАБОТКА ТЕКСТА ====================
   bot.on("message:text", async (ctx) => {
     const userId = ctx.from.id.toString();
-    const username = ctx.from.username || ctx.from.first_name || "Unknown";
-
-    if (!allowedUsers.includes(userId)) {
-      log('WARN', `Несанкционированный доступ: ${username} (${userId})`);
-      return;
-    }
+    if (!allowedUsers.includes(userId)) return;
 
     const text = ctx.message.text.trim();
     const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
 
-    try {
-      // === СОХРАНЕНИЕ (3+ строки) ===
-      if (lines.length >= 3) {
-        const [rawUrl, login, password, ...commentParts] = lines;
-        const comment = commentParts.join('\n');
+    let url, login, password, comment;
 
-        if (password.length < 3) {
-          const m = await ctx.reply("❌ Пароль слишком короткий");
-          autoDelete(ctx.chat.id, ctx.message.message_id);
-          autoDelete(ctx.chat.id, m.message_id);
-          return;
-        }
-
-        const url = normalizeUrl(rawUrl);
-
-        // Проверяем ТОЛЬКО записи текущего пользователя + точное совпадение URL + логин
-        const userSecrets = await getUserSecrets(userId);
-        const existing = userSecrets.find(r => r.url === url && r.login === login);
-
-        if (existing) {
-          const oldPass = decrypt(existing.password_enc, existing.iv, existing.auth_tag || existing.iv.split(':')[1]);
-
-          pendingConfirmations.set(userId, {
-            url, login, password, comment,
-            existingId: existing.id,
-            timestamp: Date.now()
-          });
-
-          const kb = new InlineKeyboard()
-            .text("✅ Перезаписать", "overwrite_yes")
-            .text("❌ Отмена", "overwrite_no");
-
-          const msg = await ctx.reply(
-            `⚠️ Уже есть запись для этого сайта и логина:\n\n` +
-            `🌐 ${existing.url}\n` +
-            `👤 ${existing.login}\n` +
-            `🔑 ${oldPass}\n\n` +
-            `Перезаписать новыми данными?`,
-            { reply_markup: kb }
-          );
-
-          autoDelete(ctx.chat.id, ctx.message.message_id);
-          autoDelete(ctx.chat.id, msg.message_id);
-          return;
-        }
-
-        await saveSecret(userId, url, login, password, comment);
-        const msg = await ctx.reply("✅ Пароль успешно сохранён");
-        autoDelete(ctx.chat.id, ctx.message.message_id);
-        autoDelete(ctx.chat.id, msg.message_id);
-
-        log('INFO', `Сохранён пароль для ${url} пользователем ${username}`);
-        return;
+    // === ПАРСИНГ ДВУХ ФОРМАТОВ ===
+    if (lines.length >= 3) {
+      // Многострочный формат
+      url = lines[0];
+      login = lines[1];
+      password = lines[2];
+      comment = lines.slice(3).join('\n');
+    } else if (lines.length === 1) {
+      const parts = text.split(/\s+/);
+      if (parts.length >= 3) {
+        // Одна строка: url login pass [desc]
+        url = parts[0];
+        login = parts[1];
+        password = parts[2];
+        comment = parts.slice(3).join(' ');
+      } else {
+        // Поиск (одна строка без пробелов или короткая)
+        return handleSearch(ctx, userId, text);
       }
+    } else {
+      return handleSearch(ctx, userId, text);
+    }
 
-      // === ПОИСК (1 строка) ===
-      if (lines.length === 1) {
-        const records = await findSecrets(userId, lines[0]);
+    // Проверка длины пароля
+    if (password.length < 3) {
+      const m = await ctx.reply("❌ Пароль слишком короткий (минимум 3 символа)");
+      autoDelete(ctx.chat.id, ctx.message.message_id);
+      autoDelete(ctx.chat.id, m.message_id);
+      return;
+    }
 
-        if (records.length === 0) {
-          const m = await ctx.reply("❌ Ничего не найдено");
-          autoDelete(ctx.chat.id, ctx.message.message_id);
-          autoDelete(ctx.chat.id, m.message_id);
-          return;
-        }
+    const normalizedUrl = normalizeUrl(url);
 
-        for (const record of records) {
-          const pass = decrypt(record.password_enc, record.iv, record.auth_tag || record.iv.split(':')[1]);
+    // Проверяем существование по URL (уникальность!)
+    const userSecrets = await getUserSecrets(userId);
+    const existing = userSecrets.find(r => r.url === normalizedUrl);
 
-          const kb = new InlineKeyboard().text("🗑 Удалить", `del_${record.id}`);
+    if (existing) {
+      // Уже есть запись с таким URL → подтверждение перезаписи
+      const oldPass = decrypt(existing.password_enc, existing.iv, existing.auth_tag || existing.iv.split(':')[1] || '');
+      pendingConfirmations.set(userId, {
+        url: normalizedUrl,
+        login,
+        password,
+        comment,
+        existingId: existing.id,
+        timestamp: Date.now()
+      });
 
-          const msg = await ctx.reply(
-            `🔐 Найдено:\n\n` +
-            `🌐 ${record.url}\n` +
-            `👤 ${record.login}\n` +
-            `🔑 <code>${pass}</code>\n` +
-            `💬 ${record.comment || '—'}`,
-            { reply_markup: kb, parse_mode: "HTML" }
-          );
+      const kb = new InlineKeyboard()
+        .text("✅ Перезаписать", "overwrite_yes")
+        .text("❌ Отмена", "overwrite_no");
 
-          autoDelete(ctx.chat.id, msg.message_id, 90000); // пароли показываем чуть дольше
-        }
-
-        autoDelete(ctx.chat.id, ctx.message.message_id);
-        log('INFO', `Показаны пароли (${records.length} шт.) для ${username}`);
-        return;
-      }
-
-      // Неправильный формат
-      const helpMsg = await ctx.reply(
-        `❌ Неправильный формат!\n\n` +
-        `📝 <b>Сохранить пароль:</b>\n` +
-        `https://example.com\n` +
-        `логин\n` +
-        `пароль\n` +
-        `комментарий (необязательно)\n\n` +
-        `🔍 <b>Найти пароль:</b>\nпросто отправьте ссылку\n\n` +
-        `<b>Команды:</b> /list /help`,
-        { parse_mode: "HTML" }
+      const msg = await ctx.reply(
+        `⚠️ Запись с таким URL уже существует:\n\n` +
+        `🌐 ${existing.url}\n` +
+        `👤 ${existing.login}\n` +
+        `🔑 ${oldPass}\n\n` +
+        `Перезаписать новыми данными?`,
+        { reply_markup: kb }
       );
 
       autoDelete(ctx.chat.id, ctx.message.message_id);
-      autoDelete(ctx.chat.id, helpMsg.message_id);
+      autoDelete(ctx.chat.id, msg.message_id);
+      return;
+    }
 
-    } catch (err) {
-      log('ERROR', `Ошибка обработки сообщения от ${username}`, err);
-      const m = await ctx.reply("❌ Произошла ошибка при обработке запроса");
+    // Сохраняем новую запись
+    await saveSecret(userId, normalizedUrl, login, password, comment);
+    const m = await ctx.reply("✅ Пароль успешно сохранён!\nЗапись уникальна по URL.");
+    autoDelete(ctx.chat.id, ctx.message.message_id);
+    autoDelete(ctx.chat.id, m.message_id);
+    log('INFO', `Сохранён пароль для ${normalizedUrl}`);
+  });
+
+  // Отдельная функция для поиска
+  async function handleSearch(ctx, userId, query) {
+    const records = await findSecrets(userId, query);
+    if (records.length === 0) {
+      const m = await ctx.reply("❌ Ничего не найдено. Попробуйте другую ссылку или часть названия.");
       autoDelete(ctx.chat.id, ctx.message.message_id);
       autoDelete(ctx.chat.id, m.message_id);
+      return;
     }
-  });
+
+    if (records.length === 1) {
+      // Один результат — сразу показываем
+      await showPassword(ctx, records[0]);
+    } else {
+      // Несколько результатов — выводим список с кнопками выбора
+      const kb = new InlineKeyboard();
+      records.forEach(r => {
+        kb.text(`🌐 ${r.url} — ${r.login}`, `view_${r.id}`).row();
+      });
+
+      const msg = await ctx.reply(
+        `🔍 Найдено ${records.length} похожих записей.\n\n` +
+        `Выберите нужную:`,
+        { reply_markup: kb }
+      );
+      autoDelete(ctx.chat.id, ctx.message.message_id);
+      autoDelete(ctx.chat.id, msg.message_id, 120000); // список живёт дольше
+    }
+  }
+
+  async function showPassword(ctx, record) {
+    const pass = decrypt(record.password_enc, record.iv, record.auth_tag || record.iv.split(':')[1] || '');
+    const kb = new InlineKeyboard().text("🗑 Удалить", `del_${record.id}`);
+
+    const msg = await ctx.reply(
+      `🔐 Найдено:\n\n` +
+      `🌐 ${record.url}\n` +
+      `👤 ${record.login}\n` +
+      `🔑 <code>${pass}</code>\n` +
+      `💬 ${record.comment || '—'}`,
+      { reply_markup: kb, parse_mode: "HTML" }
+    );
+    autoDelete(ctx.chat.id, msg.message_id, PASSWORD_SHOW_TIMEOUT);
+  }
 
   // ==================== CALLBACK QUERIES ====================
   bot.callbackQuery("overwrite_yes", async (ctx) => {
     const userId = ctx.from.id.toString();
     const pending = pendingConfirmations.get(userId);
-
-    if (!pending) {
-      await ctx.answerCallbackQuery("⏰ Время вышло");
-      return;
-    }
+    if (!pending) return ctx.answerCallbackQuery("⏰ Время вышло");
 
     try {
       await pb.collection("secrets").delete(pending.existingId);
       await saveSecret(userId, pending.url, pending.login, pending.password, pending.comment);
-
-      await ctx.answerCallbackQuery("✅ Успешно перезаписано");
+      await ctx.answerCallbackQuery("✅ Перезаписано");
       await ctx.deleteMessage().catch(() => {});
       pendingConfirmations.delete(userId);
-
-      log('INFO', `Перезаписана запись для ${pending.url}`);
     } catch (err) {
-      log('ERROR', 'Ошибка перезаписи', err);
       await ctx.answerCallbackQuery("❌ Ошибка");
     }
   });
@@ -317,20 +308,26 @@ async function main() {
     await ctx.deleteMessage().catch(() => {});
   });
 
-  bot.callbackQuery(/del_(.+)/, async (ctx) => {
-    const userId = ctx.from.id.toString();
+  // Просмотр пароля по кнопке
+  bot.callbackQuery(/view_(.+)/, async (ctx) => {
     const secretId = ctx.match[1];
-
-    if (!allowedUsers.includes(userId)) {
-      await ctx.answerCallbackQuery("⛔ Нет доступа");
-      return;
+    try {
+      const record = await pb.collection("secrets").getOne(secretId);
+      await showPassword(ctx, record);
+      await ctx.answerCallbackQuery("🔑 Пароль показан");
+      await ctx.deleteMessage().catch(() => {});
+    } catch (err) {
+      await ctx.answerCallbackQuery("❌ Не удалось загрузить запись");
     }
+  });
 
+  // Удаление
+  bot.callbackQuery(/del_(.+)/, async (ctx) => {
+    const secretId = ctx.match[1];
     try {
       await pb.collection("secrets").delete(secretId);
       await ctx.answerCallbackQuery("🗑 Удалено");
       await ctx.deleteMessage().catch(() => {});
-      log('INFO', `Удалена запись ${secretId} пользователем ${userId}`);
     } catch (err) {
       await ctx.answerCallbackQuery("❌ Не удалось удалить");
     }
@@ -342,18 +339,19 @@ async function main() {
 
     const msg = await ctx.reply(
       `🔐 <b>Telegram Vault</b>\n\n` +
-      `Как пользоваться:\n\n` +
-      `📝 Сохранить:\n` +
-      `https://example.com\nлогин\nпароль\n[комментарий]\n\n` +
-      `🔍 Найти:\nотправьте ссылку\n\n` +
-      `📋 Все пароли: /list\n\n` +
-      `Все сообщения удаляются автоматически.`,
+      `✅ Записи уникальны по URL (один сайт = одна запись)\n\n` +
+      `<b>Пример сохранения:</b>\n` +
+      `<code>https://example.com\n` +
+      `логин\n` +
+      `пароль\n` +
+      `комментарий</code>\n\n` +
+      `<b>Или одной строкой:</b>\n` +
+      `<code>https://example.com login password комментарий здесь</code>\n\n` +
+      `🔍 Просто отправьте ссылку или часть названия — найду и покажу варианты.\n\n` +
+      `<b>Команды:</b> /list /help`,
       { parse_mode: "HTML" }
     );
-
-    try {
-      await ctx.api.pinChatMessage(ctx.chat.id, msg.message_id, { disable_notification: true });
-    } catch {}
+    try { await ctx.api.pinChatMessage(ctx.chat.id, msg.message_id, { disable_notification: true }); } catch {}
   });
 
   bot.command("list", async (ctx) => {
@@ -361,43 +359,47 @@ async function main() {
     if (!allowedUsers.includes(userId)) return;
 
     const records = await getUserSecrets(userId);
-
     if (records.length === 0) {
       return ctx.reply("📭 У вас пока нет сохранённых паролей");
     }
 
-    let text = `📋 <b>Ваши пароли (${records.length} шт.):</b>\n\n`;
-    records.forEach((r, i) => {
-      text += `${i + 1}. <code>${r.url}</code> — ${r.login}\n`;
+    const kb = new InlineKeyboard();
+    records.forEach(r => {
+      kb.text(`🌐 ${r.url} — ${r.login}`, `view_${r.id}`).row();
     });
 
-    await ctx.reply(text, { parse_mode: "HTML" });
+    await ctx.reply(`📋 <b>Ваши пароли (${records.length} шт.):</b>\n\nВыберите для просмотра:`, {
+      parse_mode: "HTML",
+      reply_markup: kb
+    });
   });
 
   bot.command("help", async (ctx) => {
     if (!allowedUsers.includes(ctx.from.id.toString())) return;
     await ctx.reply(
-      `📋 <b>Доступные команды:</b>\n\n` +
-      `/start — закрепить шаблон\n` +
-      `/list — список всех сайтов\n` +
-      `/help — эта справка\n\n` +
-      `Просто отправляйте сообщения в формате выше.`,
+      `📋 <b>Как пользоваться Telegram Vault:</b>\n\n` +
+      `📝 <b>Сохранить пароль</b>\n` +
+      `— Многострочно (4 строки)\n` +
+      `— Или одной строкой: url login pass [описание]\n\n` +
+      `🔍 <b>Найти пароль</b>\nПросто отправьте ссылку или часть названия\n` +
+      `(бот сам покажет варианты, если совпадений несколько)\n\n` +
+      `/list — список всех записей\n` +
+      `/start — это сообщение\n\n` +
+      `✅ Все сообщения самоудаляются через 60–90 секунд.`,
       { parse_mode: "HTML" }
     );
   });
 
   // ==================== ЗАПУСК ====================
   await bot.start();
-  log('SUCCESS', 'Бот успешно запущен и готов к работе!');
+  log('SUCCESS', 'Бот успешно запущен! Всё общение на русском, поиск улучшен, меню добавлено.');
 }
 
-// ==================== ИНИЦИАЛИЗАЦИЯ + МИГРАЦИЯ БД ====================
+// ==================== ИНИЦИАЛИЗАЦИЯ БД ====================
 async function initDatabase(pb) {
   try {
     await pb.collections.getOne("secrets");
-    log('INFO', 'Коллекция secrets существует');
   } catch {
-    log('INFO', 'Создаём коллекцию secrets...');
     await pb.collections.create({
       name: "secrets",
       type: "base",
@@ -413,20 +415,19 @@ async function initDatabase(pb) {
     });
   }
 
-  // Миграция старых записей (было iv:tag в одном поле)
+  // Миграция старых записей
   const allRecords = await pb.collection("secrets").getFullList();
   for (const record of allRecords) {
     if (record.iv?.includes(':') && !record.auth_tag) {
       const [iv, tag] = record.iv.split(':');
       await pb.collection("secrets").update(record.id, { iv, auth_tag: tag });
-      log('INFO', `Миграция старой записи ${record.id}`);
     }
   }
 }
 
 // ====================== ЗАПУСК ======================
 main().catch(err => {
-  log('CRITICAL', 'Критическая ошибка запуска', err);
+  log('CRITICAL', 'Критическая ошибка', err);
   process.exit(1);
 });
 
