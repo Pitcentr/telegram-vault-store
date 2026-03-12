@@ -3,15 +3,17 @@ version: "3.7"
 
 services:
   app:
-    image: pitcentr/telegram-vault:1.4.0
+    image: pitcentr/telegram-vault:1.5.0
     user: "1000:1000"
     init: true
     restart: unless-stopped
     stop_grace_period: 1m
+    env_file:
+      - ${APP_DATA_DIR}/.env
     environment:
-      TG_TOKEN: ""
-      PB_URL: "http://pocketbase_app_1:8090"
-      PB_ADMIN: ""
-      PB_PASSWORD: ""
-      MASTER_PASSWORD: ""
-      ALLOWED_USERS: ""
+      TG_TOKEN: ${TG_TOKEN:-}
+      PB_URL: ${PB_URL:-http://pocketbase_app_1:8090}
+      PB_ADMIN: ${PB_ADMIN:-}
+      PB_PASSWORD: ${PB_PASSWORD:-}
+      MASTER_PASSWORD: ${MASTER_PASSWORD:-}
+      ALLOWED_USERS: ${ALLOWED_USERS:-}
