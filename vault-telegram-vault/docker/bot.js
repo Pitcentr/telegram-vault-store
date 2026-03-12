@@ -116,15 +116,33 @@ async function main() {
   // ==================== ХЕЛПЕРЫ ====================
   async function getUserSecrets(userId) {
     try {
+      // Пробуем с фильтром и сортировкой
       return await pb.collection("secrets").getFullList({
         filter: `created_by = "${userId}"`,
-        sort: "-created"
+        sort: "-created",
+        requestKey: null
       });
     } catch (err) {
-      log('ERROR', 'Ошибка получения секретов', { userId, error: err.message });
-      // Если фильтр не работает, получаем все и фильтруем вручную
-      const all = await pb.collection("secrets").getFullList({ sort: "-created" });
-      return all.filter(item => item.created_by === userId);
+      log('WARN', 'Ошибка получения с фильтром, пробуем без сортировки', err.message);
+      try {
+        // Пробуем без сортировки
+        return await pb.collection("secrets").getFullList({
+          filter: `created_by = "${userId}"`,
+          requestKey: null
+        });
+      } catch (err2) {
+        log('WARN', 'Ошибка получения с фильтром, получаем все записи', err2.message);
+        try {
+          // Получаем все записи без фильтра и сортировки
+          const all = await pb.collection("secrets").getFullList({ requestKey: null });
+          return all.filter(item => item.created_by === userId);
+        } catch (err3) {
+          log('ERROR', 'Критическая ошибка получения секретов', { userId, error: err3.message });
+          // Последняя попытка - через getList
+          const result = await pb.collection("secrets").getList(1, 500, { requestKey: null });
+          return result.items.filter(item => item.created_by === userId);
+        }
+      }
     }
   }
 
@@ -158,15 +176,20 @@ async function main() {
 
   async function saveSecret(userId, url, login, password, comment) {
     const { encrypted, iv, tag } = encrypt(password);
-    return pb.collection("secrets").create({
-      url: normalizeUrl(url),
-      login,
-      password_enc: encrypted,
-      iv,
-      auth_tag: tag,
-      comment: comment || "",
-      created_by: userId
-    });
+    try {
+      return await pb.collection("secrets").create({
+        url: normalizeUrl(url),
+        login,
+        password_enc: encrypted,
+        iv,
+        auth_tag: tag,
+        comment: comment || "",
+        created_by: userId
+      }, { requestKey: null });
+    } catch (err) {
+      log('ERROR', 'Ошибка сохранения секрета', { url, error: err.message });
+      throw err;
+    }
   }
 
   // ==================== ОБРАБОТКА ТЕКСТА ====================
@@ -389,20 +412,25 @@ async function main() {
     const userId = ctx.from.id.toString();
     if (!allowedUsers.includes(userId)) return;
 
-    const records = await getUserSecrets(userId);
-    if (records.length === 0) {
-      return ctx.reply("📭 У вас пока нет сохранённых паролей");
+    try {
+      const records = await getUserSecrets(userId);
+      if (records.length === 0) {
+        return ctx.reply("📭 У вас пока нет сохранённых паролей");
+      }
+
+      const kb = new InlineKeyboard();
+      records.forEach(r => {
+        kb.text(`🌐 ${r.url} — ${r.login}`, `view_${r.id}`).row();
+      });
+
+      await ctx.reply(`📋 <b>Ваши пароли (${records.length} шт.):</b>\n\nВыберите для просмотра:`, {
+        parse_mode: "HTML",
+        reply_markup: kb
+      });
+    } catch (err) {
+      log('ERROR', 'Ошибка в команде /list', err.message);
+      await ctx.reply("❌ Ошибка получения списка паролей. Проверьте настройки PocketBase.");
     }
-
-    const kb = new InlineKeyboard();
-    records.forEach(r => {
-      kb.text(`🌐 ${r.url} — ${r.login}`, `view_${r.id}`).row();
-    });
-
-    await ctx.reply(`📋 <b>Ваши пароли (${records.length} шт.):</b>\n\nВыберите для просмотра:`, {
-      parse_mode: "HTML",
-      reply_markup: kb
-    });
   });
 
   bot.command("help", async (ctx) => {
