@@ -5,7 +5,7 @@ name: Telegram Vault
 tagline: Encrypted Telegram password manager
 icon: https://raw.githubusercontent.com/pitcentr/telegram-vault-store/main/vault-telegram-vault/metadata/icon.svg
 category: security
-version: "1.3.0"
+version: "1.3.1"
 description: >-
   Telegram password manager with AES-256 encryption and PocketBase storage.
   
@@ -26,7 +26,7 @@ support: https://github.com/pitcentr/telegram-vault/issues
 gallery:
   - https://raw.githubusercontent.com/pitcentr/telegram-vault-store/main/vault-telegram-vault/metadata/screenshots/screenshot1.png
 releaseNotes: >-
-  v1.3.0: Fixed database initialization logic - properly handles existing collections and prevents duplicate creation attempts with race condition protection.
+  v1.3.1: Fixed compatibility with existing PocketBase schemas - automatically adds missing auth_tag field, supports both old (iv:tag) and new (separate auth_tag) formats for backward compatibility.
 dependencies: []
 path: ""
 defaultUsername: ""

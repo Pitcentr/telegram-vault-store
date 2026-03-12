@@ -218,7 +218,15 @@ async function main() {
 
     if (existing) {
       // Уже есть запись с таким URL → подтверждение перезаписи
-      const oldPass = decrypt(existing.password_enc, existing.iv, existing.auth_tag || existing.iv.split(':')[1] || '');
+      // Поддержка обоих форматов расшифровки
+      let authTag = existing.auth_tag;
+      let iv = existing.iv;
+      
+      if (!authTag && iv?.includes(':')) {
+        [iv, authTag] = iv.split(':');
+      }
+      
+      const oldPass = decrypt(existing.password_enc, iv, authTag || '');
       pendingConfirmations.set(userId, {
         url: normalizedUrl,
         login,
@@ -285,7 +293,16 @@ async function main() {
   }
 
   async function showPassword(ctx, record) {
-    const pass = decrypt(record.password_enc, record.iv, record.auth_tag || record.iv.split(':')[1] || '');
+    // Поддержка обоих форматов: старый (iv:tag) и новый (отдельное поле auth_tag)
+    let authTag = record.auth_tag;
+    let iv = record.iv;
+    
+    if (!authTag && iv?.includes(':')) {
+      // Старый формат: iv содержит и iv, и tag через двоеточие
+      [iv, authTag] = iv.split(':');
+    }
+    
+    const pass = decrypt(record.password_enc, iv, authTag || '');
     const kb = new InlineKeyboard().text("🗑 Удалить", `del_${record.id}`);
 
     const msg = await ctx.reply(
@@ -415,44 +432,60 @@ async function initDatabase(pb) {
   
   try {
     collection = await pb.collections.getOne("secrets");
-    log('INFO', 'Коллекция secrets уже существует');
+    log('INFO', 'Коллекция secrets найдена');
     
     // Проверяем наличие поля auth_tag
     const hasAuthTag = collection.schema.some(field => field.name === 'auth_tag');
+    
     if (!hasAuthTag) {
-      log('INFO', 'Добавляем поле auth_tag в схему');
+      log('INFO', 'Поле auth_tag отсутствует, добавляем в схему');
       try {
+        // Создаём новую схему с добавленным полем
+        const newSchema = [
+          ...collection.schema,
+          { 
+            name: "auth_tag", 
+            type: "text", 
+            required: false,
+            options: {
+              min: null,
+              max: null,
+              pattern: ""
+            }
+          }
+        ];
+        
         await pb.collections.update(collection.id, {
-          schema: [
-            ...collection.schema,
-            { name: "auth_tag", type: "text", required: false }
-          ]
+          schema: newSchema
         });
+        log('INFO', 'Поле auth_tag успешно добавлено');
       } catch (err) {
-        log('WARN', 'Не удалось обновить схему', err.message);
+        log('ERROR', 'Не удалось добавить поле auth_tag', err.message);
+        // Продолжаем работу, будем использовать старый формат с iv:tag
       }
+    } else {
+      log('INFO', 'Поле auth_tag уже существует');
     }
   } catch (err) {
-    // Коллекция не существует, создаём
-    log('INFO', 'Создаём коллекцию secrets');
+    // Коллекция не существует, создаём с нуля
+    log('INFO', 'Коллекция не найдена, создаём новую');
     try {
       collection = await pb.collections.create({
         name: "secrets",
         type: "base",
         schema: [
-          { name: "url", type: "text", required: true },
-          { name: "login", type: "text", required: true },
-          { name: "password_enc", type: "text", required: true },
-          { name: "iv", type: "text", required: true },
-          { name: "auth_tag", type: "text", required: false },
-          { name: "comment", type: "text", required: false },
-          { name: "created_by", type: "text", required: true }
+          { name: "url", type: "text", required: true, options: { min: null, max: null, pattern: "" } },
+          { name: "login", type: "text", required: true, options: { min: null, max: null, pattern: "" } },
+          { name: "password_enc", type: "text", required: true, options: { min: null, max: null, pattern: "" } },
+          { name: "iv", type: "text", required: true, options: { min: null, max: null, pattern: "" } },
+          { name: "auth_tag", type: "text", required: false, options: { min: null, max: null, pattern: "" } },
+          { name: "comment", type: "text", required: false, options: { min: null, max: null, pattern: "" } },
+          { name: "created_by", type: "text", required: true, options: { min: null, max: null, pattern: "" } }
         ]
       });
       log('INFO', 'Коллекция secrets успешно создана');
     } catch (createErr) {
-      // Возможно коллекция уже существует (race condition)
-      if (createErr.message?.includes('name_exists')) {
+      if (createErr.message?.includes('name_exists') || createErr.response?.data?.name?.code === 'validation_collection_name_exists') {
         log('INFO', 'Коллекция уже существует (создана параллельно)');
         collection = await pb.collections.getOne("secrets");
       } else {
@@ -461,22 +494,32 @@ async function initDatabase(pb) {
     }
   }
 
-  // Миграция старых записей
+  // Миграция старых записей (iv:tag → отдельные поля)
   try {
-    const allRecords = await pb.collection("secrets").getFullList();
+    const allRecords = await pb.collection("secrets").getFullList({ requestKey: null });
     let migrated = 0;
+    
     for (const record of allRecords) {
+      // Если iv содержит двоеточие и auth_tag пустой - мигрируем
       if (record.iv?.includes(':') && !record.auth_tag) {
-        const [iv, tag] = record.iv.split(':');
-        await pb.collection("secrets").update(record.id, { iv, auth_tag: tag });
-        migrated++;
+        try {
+          const [iv, tag] = record.iv.split(':');
+          await pb.collection("secrets").update(record.id, { 
+            iv, 
+            auth_tag: tag 
+          }, { requestKey: null });
+          migrated++;
+        } catch (updateErr) {
+          log('WARN', `Не удалось мигрировать запись ${record.id}`, updateErr.message);
+        }
       }
     }
+    
     if (migrated > 0) {
-      log('INFO', `Мигрировано записей: ${migrated}`);
+      log('INFO', `Успешно мигрировано записей: ${migrated}`);
     }
   } catch (err) {
-    log('WARN', 'Ошибка при миграции записей', err.message);
+    log('WARN', 'Ошибка при миграции записей (возможно поле auth_tag не добавлено)', err.message);
   }
 }
 
