@@ -20,18 +20,9 @@ function log(level, message, data = null) {
 
 function normalizeUrl(url) {
   try {
-    const trimmed = url.trim();
-    
-    // If it looks like a URL (has protocol or www), normalize it
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || /^www\./i.test(trimmed)) {
-      const urlWithProtocol = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
-      const urlObj = new URL(urlWithProtocol);
-      const hostname = urlObj.hostname.replace(/^www\./i, '');
-      return `${urlObj.protocol}//${hostname}${urlObj.pathname}`.replace(/\/$/, '');
-    }
-    
-    // Otherwise return as is (IP, service name, localhost, etc.)
-    return trimmed;
+    const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
+    let hostname = urlObj.hostname.replace(/^www\./i, '');
+    return `${urlObj.protocol}//${hostname}${urlObj.pathname}`.replace(/\/$/, '');
   } catch {
     return url.trim();
   }
