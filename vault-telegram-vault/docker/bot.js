@@ -411,36 +411,54 @@ async function main() {
 
 // ==================== ИНИЦИАЛИЗАЦИЯ БД ====================
 async function initDatabase(pb) {
+  let collection;
+  
   try {
-    const collection = await pb.collections.getOne("secrets");
+    collection = await pb.collections.getOne("secrets");
     log('INFO', 'Коллекция secrets уже существует');
     
     // Проверяем наличие поля auth_tag
     const hasAuthTag = collection.schema.some(field => field.name === 'auth_tag');
     if (!hasAuthTag) {
       log('INFO', 'Добавляем поле auth_tag в схему');
-      await pb.collections.update(collection.id, {
+      try {
+        await pb.collections.update(collection.id, {
+          schema: [
+            ...collection.schema,
+            { name: "auth_tag", type: "text", required: false }
+          ]
+        });
+      } catch (err) {
+        log('WARN', 'Не удалось обновить схему', err.message);
+      }
+    }
+  } catch (err) {
+    // Коллекция не существует, создаём
+    log('INFO', 'Создаём коллекцию secrets');
+    try {
+      collection = await pb.collections.create({
+        name: "secrets",
+        type: "base",
         schema: [
-          ...collection.schema,
-          { name: "auth_tag", type: "text", required: false }
+          { name: "url", type: "text", required: true },
+          { name: "login", type: "text", required: true },
+          { name: "password_enc", type: "text", required: true },
+          { name: "iv", type: "text", required: true },
+          { name: "auth_tag", type: "text", required: false },
+          { name: "comment", type: "text", required: false },
+          { name: "created_by", type: "text", required: true }
         ]
       });
+      log('INFO', 'Коллекция secrets успешно создана');
+    } catch (createErr) {
+      // Возможно коллекция уже существует (race condition)
+      if (createErr.message?.includes('name_exists')) {
+        log('INFO', 'Коллекция уже существует (создана параллельно)');
+        collection = await pb.collections.getOne("secrets");
+      } else {
+        throw createErr;
+      }
     }
-  } catch {
-    log('INFO', 'Создаём коллекцию secrets');
-    await pb.collections.create({
-      name: "secrets",
-      type: "base",
-      schema: [
-        { name: "url", type: "text", required: true },
-        { name: "login", type: "text", required: true },
-        { name: "password_enc", type: "text", required: true },
-        { name: "iv", type: "text", required: true },
-        { name: "auth_tag", type: "text", required: false },
-        { name: "comment", type: "text", required: false },
-        { name: "created_by", type: "text", required: true }
-      ]
-    });
   }
 
   // Миграция старых записей
