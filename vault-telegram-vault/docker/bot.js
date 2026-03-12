@@ -88,6 +88,13 @@ async function main() {
 
   await initDatabase(pb);
 
+  // Глобальный обработчик ошибок бота
+  bot.catch((err) => {
+    const ctx = err.ctx;
+    log('ERROR', `Ошибка при обработке обновления ${ctx.update.update_id}`, err.error);
+    ctx.reply("❌ Произошла ошибка. Попробуйте ещё раз.").catch(() => {});
+  });
+
   // Меню команд Telegram (появляется в интерфейсе)
   await bot.api.setMyCommands([
     { command: "start", description: "Главное меню и пример шаблона" },
@@ -108,10 +115,17 @@ async function main() {
 
   // ==================== ХЕЛПЕРЫ ====================
   async function getUserSecrets(userId) {
-    return pb.collection("secrets").getFullList({
-      filter: `created_by = "${userId}"`,
-      sort: "-created"
-    });
+    try {
+      return await pb.collection("secrets").getFullList({
+        filter: `created_by = "${userId}"`,
+        sort: "-created"
+      });
+    } catch (err) {
+      log('ERROR', 'Ошибка получения секретов', { userId, error: err.message });
+      // Если фильтр не работает, получаем все и фильтруем вручную
+      const all = await pb.collection("secrets").getFullList({ sort: "-created" });
+      return all.filter(item => item.created_by === userId);
+    }
   }
 
   // Улучшенный поиск: точный → подстрока → fuzzy
@@ -398,8 +412,22 @@ async function main() {
 // ==================== ИНИЦИАЛИЗАЦИЯ БД ====================
 async function initDatabase(pb) {
   try {
-    await pb.collections.getOne("secrets");
+    const collection = await pb.collections.getOne("secrets");
+    log('INFO', 'Коллекция secrets уже существует');
+    
+    // Проверяем наличие поля auth_tag
+    const hasAuthTag = collection.schema.some(field => field.name === 'auth_tag');
+    if (!hasAuthTag) {
+      log('INFO', 'Добавляем поле auth_tag в схему');
+      await pb.collections.update(collection.id, {
+        schema: [
+          ...collection.schema,
+          { name: "auth_tag", type: "text", required: false }
+        ]
+      });
+    }
   } catch {
+    log('INFO', 'Создаём коллекцию secrets');
     await pb.collections.create({
       name: "secrets",
       type: "base",
@@ -408,7 +436,7 @@ async function initDatabase(pb) {
         { name: "login", type: "text", required: true },
         { name: "password_enc", type: "text", required: true },
         { name: "iv", type: "text", required: true },
-        { name: "auth_tag", type: "text", required: true },
+        { name: "auth_tag", type: "text", required: false },
         { name: "comment", type: "text", required: false },
         { name: "created_by", type: "text", required: true }
       ]
@@ -416,12 +444,21 @@ async function initDatabase(pb) {
   }
 
   // Миграция старых записей
-  const allRecords = await pb.collection("secrets").getFullList();
-  for (const record of allRecords) {
-    if (record.iv?.includes(':') && !record.auth_tag) {
-      const [iv, tag] = record.iv.split(':');
-      await pb.collection("secrets").update(record.id, { iv, auth_tag: tag });
+  try {
+    const allRecords = await pb.collection("secrets").getFullList();
+    let migrated = 0;
+    for (const record of allRecords) {
+      if (record.iv?.includes(':') && !record.auth_tag) {
+        const [iv, tag] = record.iv.split(':');
+        await pb.collection("secrets").update(record.id, { iv, auth_tag: tag });
+        migrated++;
+      }
     }
+    if (migrated > 0) {
+      log('INFO', `Мигрировано записей: ${migrated}`);
+    }
+  } catch (err) {
+    log('WARN', 'Ошибка при миграции записей', err.message);
   }
 }
 

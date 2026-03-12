@@ -3,7 +3,7 @@ version: "3.7"
 
 services:
   app:
-    image: pitcentr/telegram-vault:1.2.8
+    image: pitcentr/telegram-vault:1.2.9
     user: "1000:1000"
     init: true
     restart: unless-stopped
