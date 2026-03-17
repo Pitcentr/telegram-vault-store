@@ -86,10 +86,10 @@ async function main() {
   const allowedUsers = process.env.ALLOWED_USERS.split(',').map(id => id.trim());
   log('INFO', `Запуск Telegram Vault. Разрешено пользователей: ${allowedUsers.length}`);
 
-  // Аутентификация в PocketBase
+  // Аутентификация в PocketBase как администратор
   try {
-    await pb.collection("_superusers").authWithPassword(process.env.PB_ADMIN, process.env.PB_PASSWORD);
-    log('INFO', 'Успешная аутентификация в PocketBase');
+    await pb.admins.authWithPassword(process.env.PB_ADMIN, process.env.PB_PASSWORD);
+    log('INFO', 'Успешная аутентификация в PocketBase как администратор');
   } catch (err) {
     log('ERROR', 'Не удалось авторизоваться в PocketBase', err.message);
     process.exit(1);
@@ -104,7 +104,7 @@ async function main() {
   // Меню команд
   await bot.api.setMyCommands([
     { command: "start", description: "Главное меню" },
-    { command: "list", description: "Показать все пароли" },
+    { command: "find", description: "Поиск паролей" },
     { command: "help", description: "Справка" }
   ]);
 
@@ -398,28 +398,61 @@ async function main() {
     } catch {}
   });
 
-  bot.command("list", async (ctx) => {
+  bot.command("find", async (ctx) => {
     const userId = ctx.from.id.toString();
     if (!allowedUsers.includes(userId)) return;
 
+    const query = ctx.message.text.replace('/find', '').trim();
+    
+    if (!query) {
+      const m = await ctx.reply(
+        `🔍 <b>Поиск паролей</b>\n\n` +
+        `Используйте: <code>/find запрос</code>\n\n` +
+        `Поиск работает по URL и комментариям`,
+        { parse_mode: "HTML" }
+      );
+      autoDelete(ctx.chat.id, m.message_id);
+      return;
+    }
+
     try {
-      const records = await getAllSecrets(userId);
+      const allRecords = await getAllSecrets(userId);
       
-      if (records.length === 0) {
-        return ctx.reply("📭 У вас пока нет сохранённых паролей");
+      if (allRecords.length === 0) {
+        const m = await ctx.reply("📭 У вас пока нет сохранённых паролей");
+        autoDelete(ctx.chat.id, m.message_id);
+        return;
       }
 
-      const kb = new InlineKeyboard();
-      records.forEach(r => {
-        kb.text(`🌐 ${r.url} — ${r.login}`, `view_${r.id}`).row();
+      const lowerQuery = query.toLowerCase();
+      const found = allRecords.filter(r => {
+        const urlMatch = r.url.toLowerCase().includes(lowerQuery);
+        const commentMatch = r.comment && r.comment.toLowerCase().includes(lowerQuery);
+        return urlMatch || commentMatch;
       });
 
-      await ctx.reply(
-        `📋 <b>Ваши пароли (${records.length} шт.):</b>\n\nВыберите:`,
-        { parse_mode: "HTML", reply_markup: kb }
-      );
+      if (found.length === 0) {
+        const m = await ctx.reply(`❌ Ничего не найдено по запросу: "${query}"`);
+        autoDelete(ctx.chat.id, m.message_id);
+        return;
+      }
+
+      if (found.length === 1) {
+        await showPassword(ctx, found[0]);
+      } else {
+        const kb = new InlineKeyboard();
+        found.forEach(r => {
+          kb.text(`🌐 ${r.url} — ${r.login}`, `view_${r.id}`).row();
+        });
+
+        const msg = await ctx.reply(
+          `🔍 Найдено ${found.length} записей по запросу: "${query}"\n\nВыберите:`,
+          { reply_markup: kb }
+        );
+        autoDelete(ctx.chat.id, msg.message_id, 120000);
+      }
     } catch (err) {
-      await ctx.reply("❌ Ошибка получения списка");
+      await ctx.reply("❌ Ошибка поиска");
     }
   });
 
@@ -428,12 +461,13 @@ async function main() {
     
     await ctx.reply(
       `📋 <b>Как пользоваться:</b>\n\n` +
-      `� <b>Сохранить:</b>\n` +
+      `💾 <b>Сохранить:</b>\n` +
       `— 4 строки: url, login, password, comment\n` +
       `— Или одной строкой через пробел\n\n` +
       `🔍 <b>Найти:</b>\n` +
-      `Отправьте URL или часть названия\n\n` +
-      `/list — все записи\n` +
+      `Отправьте URL или часть названия\n` +
+      `Или используйте: <code>/find запрос</code>\n\n` +
+      `/find — поиск по URL и комментариям\n` +
       `/start — главное меню\n\n` +
       `✅ Сообщения самоудаляются через 60-90 сек`,
       { parse_mode: "HTML" }
