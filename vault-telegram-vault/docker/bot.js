@@ -86,10 +86,10 @@ async function main() {
   const allowedUsers = process.env.ALLOWED_USERS.split(',').map(id => id.trim());
   log('INFO', `Запуск Telegram Vault. Разрешено пользователей: ${allowedUsers.length}`);
 
-  // Аутентификация в PocketBase как администратор
+  // Аутентификация в PocketBase
   try {
-    await pb.admins.authWithPassword(process.env.PB_ADMIN, process.env.PB_PASSWORD);
-    log('INFO', 'Успешная аутентификация в PocketBase как администратор');
+    await pb.collection("_superusers").authWithPassword(process.env.PB_ADMIN, process.env.PB_PASSWORD);
+    log('INFO', 'Успешная аутентификация в PocketBase');
   } catch (err) {
     log('ERROR', 'Не удалось авторизоваться в PocketBase', err.message);
     process.exit(1);
