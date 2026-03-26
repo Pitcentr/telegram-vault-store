@@ -10,6 +10,7 @@ dotenv.config();
 const REQUIRED_ENV = ['TG_TOKEN', 'PB_URL', 'PB_ADMIN', 'PB_PASSWORD', 'MASTER_PASSWORD', 'ALLOWED_USERS'];
 const AUTO_DELETE_TIMEOUT = 60000;
 const PASSWORD_SHOW_TIMEOUT = 90000;
+const TOKEN_REFRESH_INTERVAL = 90 * 60 * 1000; // 90 минут
 
 // ====================== УТИЛИТЫ ======================
 function log(level, message, data = null) {
@@ -86,14 +87,28 @@ async function main() {
   const allowedUsers = process.env.ALLOWED_USERS.split(',').map(id => id.trim());
   log('INFO', `Запуск Telegram Vault. Разрешено пользователей: ${allowedUsers.length}`);
 
-  // Аутентификация в PocketBase
-  try {
-    await pb.collection("_superusers").authWithPassword(process.env.PB_ADMIN, process.env.PB_PASSWORD);
-    log('INFO', 'Успешная аутентификация в PocketBase');
-  } catch (err) {
-    log('ERROR', 'Не удалось авторизоваться в PocketBase', err.message);
+  // Функция аутентификации в PocketBase
+  async function authenticatePocketBase() {
+    try {
+      await pb.collection("_superusers").authWithPassword(process.env.PB_ADMIN, process.env.PB_PASSWORD);
+      log('INFO', 'Успешная аутентификация в PocketBase');
+      return true;
+    } catch (err) {
+      log('ERROR', 'Не удалось авторизоваться в PocketBase', err.message);
+      return false;
+    }
+  }
+
+  // Первичная аутентификация
+  if (!await authenticatePocketBase()) {
     process.exit(1);
   }
+
+  // Автоматическое обновление токена каждые 90 минут
+  setInterval(async () => {
+    log('INFO', 'Обновление токена PocketBase...');
+    await authenticatePocketBase();
+  }, TOKEN_REFRESH_INTERVAL);
 
   // Глобальный обработчик ошибок
   bot.catch((err) => {
