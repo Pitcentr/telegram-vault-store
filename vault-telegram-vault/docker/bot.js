@@ -63,16 +63,7 @@ function decrypt(encrypted, ivHex, tagHex) {
   }
 }
 
-function autoDelete(chatId, messageId, delay = AUTO_DELETE_TIMEOUT) {
-  setTimeout(() => {
-    bot.api.deleteMessage(chatId, messageId).catch(() => {});
-  }, delay);
-}
-
 // ====================== ГЛАВНАЯ ФУНКЦИЯ ======================
-const bot = new Bot(process.env.TG_TOKEN || "");
-const pb = new PocketBase(process.env.PB_URL || "");
-
 async function main() {
   // Проверка переменных окружения
   const missing = REQUIRED_ENV.filter(v => !process.env[v]);
@@ -82,6 +73,16 @@ async function main() {
     console.error(missing.join(', '));
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     while (true) await new Promise(r => setTimeout(r, 60000));
+  }
+
+  const bot = new Bot(process.env.TG_TOKEN);
+  const pb = new PocketBase(process.env.PB_URL);
+
+  // Функция автоудаления сообщений
+  function autoDelete(chatId, messageId, delay = AUTO_DELETE_TIMEOUT) {
+    setTimeout(() => {
+      bot.api.deleteMessage(chatId, messageId).catch(() => {});
+    }, delay);
   }
 
   const allowedUsers = process.env.ALLOWED_USERS.split(',').map(id => id.trim());

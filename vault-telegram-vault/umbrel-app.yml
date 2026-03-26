@@ -5,7 +5,7 @@ name: Telegram Vault
 tagline: Encrypted Telegram password manager
 icon: https://raw.githubusercontent.com/pitcentr/telegram-vault-store/main/vault-telegram-vault/metadata/icon.svg
 category: security
-version: "1.5.0"
+version: "1.5.1"
 description: >-
   Telegram password manager with AES-256 encryption and PocketBase storage.
   
@@ -26,7 +26,7 @@ support: https://github.com/pitcentr/telegram-vault/issues
 gallery:
   - https://raw.githubusercontent.com/pitcentr/telegram-vault-store/main/vault-telegram-vault/metadata/screenshots/screenshot1.png
 releaseNotes: >-
-  v1.5.0: Major stability update - fixed PocketBase token expiration with automatic refresh every 90 minutes. Replaced /list with /find command for advanced search by URL and comments with partial matching.
+  v1.5.1: Fixed "Empty token" error on startup - moved bot initialization after environment validation. Token refresh stability improvements.
 dependencies: []
 path: ""
 defaultUsername: ""
